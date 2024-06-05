@@ -8,18 +8,30 @@ namespace scoring_analysis
 {
     internal unsafe class Program
     {
+        private static readonly string newLine = Environment.NewLine;
+        private static readonly string version = "0.0.1a";
+#if (DEBUGX86 || RELEASEX86)
+        private static readonly string preset = "UAF API";
+#elif (DEBUGX64 || RELEASEX64)
+        private static readonly string preset = "JDN API";
+#endif
+        private static readonly string header = "Just Dance Scoring APIs Analyzer | Created by Cami" + newLine + $"Version: {version}" + newLine + $"Preset: {preset}" + newLine;
+
         static void Main(string[] args)
         {
-            Console.WriteLine("Just Dance Scoring Analysis by Cami");
-            Console.WriteLine("Version: 0.0.1a");
-#if (DEBUGX86 || RELEASEX86)
-            Console.WriteLine("Preset: UAF API");
-#elif (DEBUGX64 || RELEASEX64)
-            Console.WriteLine("Preset: JDN API");
-#endif
-            Console.WriteLine();
-            Console.WriteLine("Select one of the options:");
-            Console.WriteLine("");
+            Console.WriteLine(header);
+            Console.WriteLine($"Select an option below: {newLine}");
+            string[] commands = new string[2]
+            {
+                "[0] Example Option",
+                "[1] Example Option"
+            };
+            foreach (string command in commands)
+            {
+                Console.WriteLine(command.PadLeft(20));
+            }
+            Console.Write($"{newLine}Type code: ");
+            Console.Read();
         }
     }
 
