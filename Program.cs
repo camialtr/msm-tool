@@ -3,8 +3,11 @@ using JDNow;
 #elif (DEBUGX64 || RELEASEX64)
 using MoveSpaceWrapper;
 #endif
+using Newtonsoft.Json;
 using System.Diagnostics;
 using System.ComponentModel;
+using NativeFileDialogSharp;
+using System.Net;
 
 namespace scoring_analysis
 {
@@ -41,7 +44,7 @@ namespace scoring_analysis
                     SwitchAPI();
                     break;
                 case "1":
-                    NotImplemented();
+                    ProcessRecordedData();
                     break;
                 case "2":
                     NotImplemented();
@@ -55,7 +58,7 @@ namespace scoring_analysis
             try
             {
                 string exePath = Path.Combine(Environment.CurrentDirectory, "scoring-analysis.exe");
-                if (preset == "JDN API")
+                if (preset == "JDNOW API")
                 {
                     Process.Start(exePath.Replace("x86", "x64"));
                 }
@@ -76,7 +79,7 @@ namespace scoring_analysis
             try
             {
                 string exePath = Path.Combine(Environment.CurrentDirectory, "Assemblies", "scoring-analysis.exe");
-                if (preset == "JDN API")
+                if (preset == "JDNOW API")
                 {
                     Process.Start(exePath.Replace(@"Assemblies\", ""));
                 }
@@ -90,6 +93,35 @@ namespace scoring_analysis
                 console = "Unable to open x64 version of this project, verify your files integrity!";
                 InitialLogic();
             }            
+        }
+#endif
+#if (DEBUGX86 || RELEASEX86)
+        static void ProcessRecordedData()
+        {
+            Console.Clear();
+            Console.WriteLine(header);
+            Console.WriteLine($"{commands[1].Replace("[1] ", "")}{newLine}");
+            Console.Write($"[Console]");
+            console = "Select a file...";
+            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+            Thread.Sleep(500);
+            ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(Dialog.FileOpen("json", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).Path));
+            console = "Verifying file...";
+            Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+            if (string.IsNullOrEmpty(recordedData.mapName) || recordedData.moves == null || recordedData.recordedAccData == null || recordedData.recordedScore == null)
+            {
+                console = "Error: Seems like you have selected an incorrect file, verify your file structure or select a valid one!";
+                InitialLogic();
+            }
+            else
+            {
+
+            }
+        }
+#elif (DEBUGX64 || RELEASEX64)
+        static void ProcessRecordedData()
+        {
+
         }
 #endif
     }
