@@ -4,6 +4,7 @@ using JDNow;
 using MoveSpaceWrapper;
 #endif
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace scoring_analysis
 {
@@ -51,28 +52,44 @@ namespace scoring_analysis
 #if (DEBUGX86 || DEBUGX64)
         static void SwitchAPI()
         {
-            string exePath = Path.Combine(Environment.CurrentDirectory, "scoring-analysis.exe");
-            if (preset == "JDN API")
+            try
             {
-                Process.Start(exePath.Replace("x86", "x64"));
+                string exePath = Path.Combine(Environment.CurrentDirectory, "scoring-analysis.exe");
+                if (preset == "JDN API")
+                {
+                    Process.Start(exePath.Replace("x86", "x64"));
+                }
+                else
+                {
+                    Process.Start(exePath.Replace("x64", "x86"));
+                }
             }
-            else
+            catch (Win32Exception)
             {
-                Process.Start(exePath.Replace("x64", "x86"));
-            }
+                console = "Unable to open x86 version of this project, verify your files integrity!";
+                InitialLogic();
+            }            
         }
 #elif (RELEASEX86 || RELEASEX64)
         static void SwitchAPI()
         {
-            string exePath = Path.Combine(Environment.CurrentDirectory, "Assemblies", "scoring-analysis.exe");
-            if (preset == "JDN API")
+            try
             {
-                Process.Start(exePath.Replace(@"Assemblies\", ""));
+                string exePath = Path.Combine(Environment.CurrentDirectory, "Assemblies", "scoring-analysis.exe");
+                if (preset == "JDN API")
+                {
+                    Process.Start(exePath.Replace(@"Assemblies\", ""));
+                }
+                else
+                {
+                    Process.Start(exePath);
+                }
             }
-            else
+            catch (Win32Exception)
             {
-                Process.Start(exePath);
-            }
+                console = "Unable to open x64 version of this project, verify your files integrity!";
+                InitialLogic();
+            }            
         }
 #endif
     }
