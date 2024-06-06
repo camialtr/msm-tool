@@ -11,21 +11,27 @@ namespace scoring_analysis
         public static readonly string newLine = Environment.NewLine;
         public static readonly string version = "0.0.1a";
 #if (DEBUGX86 || RELEASEX86)
+        public static readonly string architecture = "[x86]";
         public static readonly string preset = "JDN API";
-        public static readonly string[] commands = new string[2]
+        public static readonly string[] commands = new string[3]
         {
-            "  [0] Example Option to JDNOW",
-            "  [1] Example Option to JDNOW"
+            "  [0] Switch API preset to UAF",
+            "  [1] Generate comparative JDN-JSON from recorded data",
+            "  [2] Compare JDN-JSON to UAF-JSON",
+            
         };
 #elif (DEBUGX64 || RELEASEX64)
+        public static readonly string architecture = "[x64]";
         public static readonly string preset = "UAF API";
-        public static readonly string[] commands = new string[2]
+        public static readonly string[] commands = new string[3]
         {
-            "  [0] Example Option to UAF",
-            "  [1] Example Option to UAF"
+            "  [0] Switch API preset to JDN",
+            "  [1] Generate comparative UAF-JSON from recorded data",
+            "  [2] Compare UAF-JSON to JDN-JSON",
         };
 #endif
-        public static readonly string header = "Just Dance Scoring APIs Analyzer | Created by Cami" + newLine + $"Version: {version}" + newLine + $"Preset: {preset}" + newLine;
+        public static readonly string header = "Just Dance Scoring APIs Analyzer | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine + $"Preset: {preset}" + newLine;
+        public static string console = "...";
     }
 
     public struct ScoringRecorder
@@ -42,7 +48,7 @@ namespace scoring_analysis
     {
         public float time;
         public float duration;
-        public string name;
+        public string data;
         public int goldMove;
     }
 
