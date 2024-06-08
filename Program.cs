@@ -7,7 +7,6 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.ComponentModel;
 using NativeFileDialogSharp;
-using System.Net;
 
 namespace scoring_analysis
 {
@@ -103,8 +102,8 @@ namespace scoring_analysis
             Console.WriteLine($"{commands[1].Replace("[1] ", "")}{newLine}");
             Console.Write($"[Console]");
             console = "Select a file...";
-            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
             Thread.Sleep(500);
+            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
             ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(Dialog.FileOpen("json", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).Path));
             console = "Verifying file...";
             Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
@@ -115,7 +114,49 @@ namespace scoring_analysis
             }
             else
             {
-
+                console = "Creating JDNEXT-JSON...";
+                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+                ComparativeJSON jdnextJSON = new()
+                {
+                    mapName = recordedData.mapName,
+                    comparativeType = ComparativeType.JDNEXT,
+                    values = recordedData.recordedScore
+                };
+                string comparativesDirectory = Path.Combine(Environment.CurrentDirectory, "Comparatives");
+                if (!Directory.Exists(comparativesDirectory)) Directory.CreateDirectory(comparativesDirectory);
+                string mapComparativesDirectory = Path.Combine(comparativesDirectory, recordedData.mapName);
+                if (!Directory.Exists(mapComparativesDirectory)) Directory.CreateDirectory(mapComparativesDirectory);
+                console = "Saving JDNEXT-JSON...";
+                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+                File.WriteAllText(Path.Combine(mapComparativesDirectory, "jdnext.json"), JsonConvert.SerializeObject(jdnextJSON, Formatting.Indented));
+                console = "Starting JDNOW API...";
+                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+                Scoring scoring = new();
+                console = "Successfully initialized with ID: " + scoring.GetScoringID();
+                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+                console = "Loading classifiers...";
+                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+                Thread.Sleep(500);
+                Move lastMove = recordedData.moves.Last();
+                int classifiersSuccessCount = 0;
+                int classifiersFailureCount = 0;
+                foreach (Move move in recordedData.moves)
+                {
+                    bool classifierLoaded = scoring.LoadClassifier(move.data, Convert.FromBase64String(move.data));
+                    bool moveLoaded = scoring.LoadMove(move.data, (int)(move.time * 1000), (int)(move.duration * 1000), Convert.ToBoolean(move.goldMove), move.Equals(lastMove));
+                    if (classifierLoaded && moveLoaded) { classifiersSuccessCount++; } else { classifiersFailureCount++; }
+                }
+                if (classifiersFailureCount != 0)
+                {
+                    console = $"Error: At least one classifier failed to load!";
+                    InitialLogic();
+                }
+                else
+                {
+                    console = $"Successfully loaded {classifiersSuccessCount} classifiers!";
+                    Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+                    //to-do SCORING
+                }
             }
         }
 #elif (DEBUGX64 || RELEASEX64)

@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Reflection.Metadata.Ecma335;
+using System.Runtime.InteropServices;
 
 namespace JDNow
 {
@@ -18,6 +19,8 @@ namespace JDNow
         {
             scoringID = init();
         }
+
+        public int GetScoringID() { return scoringID; }
 
         [DllImport($"{dllPath}", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool loadClassifier(int scoringID, string moveName, [MarshalAs(UnmanagedType.LPArray)] byte[] source, int sourceLength);

@@ -70,7 +70,8 @@ namespace scoring_analysis
     public struct ComparativeJSON
     {
         public string mapName;
-        public ComparativeType comparativeType;       
+        public ComparativeType comparativeType;
+        public List<RecordedScore> values;
     }
 
     public enum ComparativeType
