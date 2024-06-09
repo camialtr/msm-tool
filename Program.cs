@@ -135,7 +135,7 @@ namespace scoring_analysis
                 console = "Successfully initialized with ID: " + scoring.GetScoringID();
                 Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
                 console = "Loading classifiers...";
-                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}{newLine}");
                 Thread.Sleep(500);
                 Move lastMove = recordedData.moves.Last();
                 int classifiersSuccessCount = 0;
@@ -154,8 +154,47 @@ namespace scoring_analysis
                 else
                 {
                     console = $"Successfully loaded {classifiersSuccessCount} classifiers!";
-                    Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-                    //to-do SCORING
+                    Console.WriteLine($"{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+                    int moveNum = 0;
+                    foreach (RecordedAccData accData in recordedData.recordedAccData)
+                    {
+                        ScoreResult lastScore = scoring.GetLastScore();
+                        string feedback = "UNKNOW";
+                        if (lastScore.moveNum > moveNum)
+                        {
+                            switch (lastScore.rating)
+                            {
+                                case 0:
+                                    if (lastScore.isGoldMove)
+                                    {
+                                        feedback = "MISSYEAH";
+                                    }
+                                    else
+                                    {
+                                        feedback = "MISS";
+                                    }
+                                    break;
+                                case 1:
+                                    feedback = "OK";
+                                    break;
+                                case 2:
+                                    feedback = "GOOD";
+                                    break;
+                                case 3:
+                                    feedback = "PERFECT";
+                                    break;
+                                case 4:
+                                    feedback = "YEAH";
+                                    break;
+                            }
+                            console = $"Score: {lastScore.totalScore} Feedback: {feedback}";
+                            Console.Write($"{DateTime.Now.ToString("hh:mm:ss.fff")} - {console} ");
+                            Console.GetCursorPosition();
+                            moveNum++;
+                        }
+                        scoring.AddSample(accData.accX, accData.accY, accData.accZ, accData.mapTime - 0.1f);
+                    }
+                    Console.ReadLine();
                 }
             }
         }
