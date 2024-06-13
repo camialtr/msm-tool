@@ -169,12 +169,13 @@ namespace scoring_analysis
                 Console.Clear();
                 Console.WriteLine("Scoring...");
                 List<RecordedScore> recordedValues = new();
-                int moveID = 0;
+                int moveID = 0; float lastScore = 0f;
                 foreach (RecordedAccData accData in recordedData.recordedAccData)
                 {
-                    scoring.AddSample(accData.accX, accData.accY, accData.accZ, accData.mapTime - 0.1f);
                     ScoreResult scoreResult = scoring.GetLastScore();
-                    if (GetScoreData(scoreResult, moveID, recordedValues)) moveID++;
+                    (int, float) scoreData = GetScoreData(scoreResult, moveID, lastScore, recordedValues);
+                    moveID = scoreData.Item1; lastScore = scoreData.Item2;
+                    scoring.AddSample(accData.accX, accData.accY, accData.accZ, accData.mapTime - 0.1f);
                 }
                 ComparativeJSON jdnowJSON = new()
                 {
@@ -188,9 +189,9 @@ namespace scoring_analysis
             }
         }
 
-        static bool GetScoreData(ScoreResult scoreResult, int moveID, List<RecordedScore> recordedValues)
+        static (int, float) GetScoreData(ScoreResult scoreResult, int moveID, float lastScore, List<RecordedScore> recordedValues)
         {            
-            if (scoreResult.moveNum > moveID)
+            if (scoreResult.moveNum == moveID)
             {
                 string feedback = string.Empty;
                 switch (scoreResult.rating)
@@ -218,15 +219,15 @@ namespace scoring_analysis
                         feedback = "YEAH";
                         break;
                 }
-                recordedValues.Add(new() { feedback = feedback, addedScore = 0, totalScore = scoreResult.totalScore});
-                return true;
+                recordedValues.Add(new() { feedback = feedback, addedScore = scoreResult.totalScore - lastScore, totalScore = scoreResult.totalScore});
+                moveID++; lastScore = scoreResult.totalScore;
             }
-            return false;
+            return (moveID, lastScore);
         }
 #elif (DEBUGX64 || RELEASEX64)
         static void ProcessRecordedData()
         {
-
+            NotImplemented();
         }
 #endif
     }
