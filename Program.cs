@@ -36,7 +36,7 @@ namespace scoring_analysis
             switch (stringTyped)
             {
                 default:
-                    console = "Invalid option, try again!";                    
+                    console = "Invalid option, try again!";
                     InitialLogic();
                     break;
                 case "0":
@@ -97,16 +97,11 @@ namespace scoring_analysis
 #if (DEBUGX86 || RELEASEX86)
         static void ProcessRecordedData()
         {
-            Console.Clear();
-            Console.WriteLine(header);
-            Console.WriteLine($"{commands[1].Replace("[1] ", "")}{newLine}");
-            Console.Write($"[Console]");
-            console = "Select a file...";
-            Thread.Sleep(500);
-            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-            ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(Dialog.FileOpen("json", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)).Path));
-            console = "Verifying file...";
-            Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+            WriteStaticHeader(true, "Select a file...");
+            DialogResult dialogResult = Dialog.FileOpen("json", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
+            ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(dialogResult.Path));
+            WriteStaticHeader(true, "Verifying file...");
             if (string.IsNullOrEmpty(recordedData.mapName) || recordedData.moves == null || recordedData.recordedAccData == null || recordedData.recordedScore == null)
             {
                 console = "Error: Seems like you have selected an incorrect file, verify your file structure or select a valid one!";
@@ -114,89 +109,119 @@ namespace scoring_analysis
             }
             else
             {
-                console = "Creating JDNEXT-JSON...";
-                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-                ComparativeJSON jdnextJSON = new()
+                GenerateJDNEXTJSON(recordedData);
+                GenerateJDNOWJSON(recordedData);
+            }
+        }
+
+        static void WriteStaticHeader(bool sleep, string log)
+        {
+            Console.Clear();
+            Console.WriteLine(header);
+            Console.WriteLine($"{commands[1].Replace("[1] ", "")}{newLine}");
+            Console.Write($"[Console]");
+            console = log;            
+            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+            if (sleep) Thread.Sleep(500);
+        }
+
+        static void GenerateJDNEXTJSON(ScoringRecorder recordedData)
+        {
+            WriteStaticHeader(false, "Generating JDNEXT-JSON...");
+            ComparativeJSON jdnextJSON = new()
+            {
+                mapName = recordedData.mapName,
+                comparativeType = ComparativeType.JDNEXT,
+                values = recordedData.recordedScore
+            };
+            File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(recordedData), "jdnext.json"), JsonConvert.SerializeObject(jdnextJSON, Formatting.Indented));
+        }
+
+        static string GetOrCreateComparativesDirectory(ScoringRecorder recordedData)
+        {
+            string comparativesDirectory = Path.Combine(Environment.CurrentDirectory, "Comparatives").Replace(@"Assemblies\", "");
+            if (!Directory.Exists(comparativesDirectory)) Directory.CreateDirectory(comparativesDirectory);
+            string mapComparativesDirectory = Path.Combine(comparativesDirectory, recordedData.mapName);
+            if (!Directory.Exists(mapComparativesDirectory)) Directory.CreateDirectory(mapComparativesDirectory);
+            return mapComparativesDirectory;
+        }
+
+        static void GenerateJDNOWJSON(ScoringRecorder recordedData)
+        {
+            WriteStaticHeader(true, "Initializing score api...");
+            Scoring scoring = new();
+            Move lastMove = recordedData.moves.Last();
+            int classifiersSuccessCount = 0;
+            int classifiersFailureCount = 0;
+            foreach (Move move in recordedData.moves)
+            {
+                bool classifierLoaded = scoring.LoadClassifier(move.data, Convert.FromBase64String(move.data));
+                bool moveLoaded = scoring.LoadMove(move.data, (int)(move.time * 1000), (int)(move.duration * 1000), Convert.ToBoolean(move.goldMove), move.Equals(lastMove));
+                if (classifierLoaded && moveLoaded) { classifiersSuccessCount++; } else { classifiersFailureCount++; }
+            }
+            if (classifiersFailureCount != 0)
+            {
+                console = $"Error: At least one classifier failed to load!";
+                InitialLogic();
+            }
+            else
+            {
+                Console.Clear();
+                Console.WriteLine("Scoring...");
+                List<RecordedScore> recordedValues = new();
+                int moveID = 0;
+                foreach (RecordedAccData accData in recordedData.recordedAccData)
+                {
+                    scoring.AddSample(accData.accX, accData.accY, accData.accZ, accData.mapTime - 0.1f);
+                    ScoreResult scoreResult = scoring.GetLastScore();
+                    if (GetScoreData(scoreResult, moveID, recordedValues)) moveID++;
+                }
+                ComparativeJSON jdnowJSON = new()
                 {
                     mapName = recordedData.mapName,
-                    comparativeType = ComparativeType.JDNEXT,
-                    values = recordedData.recordedScore
+                    comparativeType = ComparativeType.JDNOW,
+                    values = recordedValues
                 };
-                string comparativesDirectory = Path.Combine(Environment.CurrentDirectory, "Comparatives");
-                if (!Directory.Exists(comparativesDirectory)) Directory.CreateDirectory(comparativesDirectory);
-                string mapComparativesDirectory = Path.Combine(comparativesDirectory, recordedData.mapName);
-                if (!Directory.Exists(mapComparativesDirectory)) Directory.CreateDirectory(mapComparativesDirectory);
-                console = "Saving JDNEXT-JSON...";
-                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-                File.WriteAllText(Path.Combine(mapComparativesDirectory, "jdnext.json"), JsonConvert.SerializeObject(jdnextJSON, Formatting.Indented));
-                console = "Starting JDNOW API...";
-                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-                Scoring scoring = new();
-                console = "Successfully initialized with ID: " + scoring.GetScoringID();
-                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-                console = "Loading classifiers...";
-                Console.Write($"{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}{newLine}");
-                Thread.Sleep(500);
-                Move lastMove = recordedData.moves.Last();
-                int classifiersSuccessCount = 0;
-                int classifiersFailureCount = 0;
-                foreach (Move move in recordedData.moves)
-                {
-                    bool classifierLoaded = scoring.LoadClassifier(move.data, Convert.FromBase64String(move.data));
-                    bool moveLoaded = scoring.LoadMove(move.data, (int)(move.time * 1000), (int)(move.duration * 1000), Convert.ToBoolean(move.goldMove), move.Equals(lastMove));
-                    if (classifierLoaded && moveLoaded) { classifiersSuccessCount++; } else { classifiersFailureCount++; }
-                }
-                if (classifiersFailureCount != 0)
-                {
-                    console = $"Error: At least one classifier failed to load!";
-                    InitialLogic();
-                }
-                else
-                {
-                    console = $"Successfully loaded {classifiersSuccessCount} classifiers!";
-                    Console.WriteLine($"{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-                    int moveNum = 0;
-                    foreach (RecordedAccData accData in recordedData.recordedAccData)
-                    {
-                        ScoreResult lastScore = scoring.GetLastScore();
-                        string feedback = "UNKNOW";
-                        if (lastScore.moveNum > moveNum)
-                        {
-                            switch (lastScore.rating)
-                            {
-                                case 0:
-                                    if (lastScore.isGoldMove)
-                                    {
-                                        feedback = "MISSYEAH";
-                                    }
-                                    else
-                                    {
-                                        feedback = "MISS";
-                                    }
-                                    break;
-                                case 1:
-                                    feedback = "OK";
-                                    break;
-                                case 2:
-                                    feedback = "GOOD";
-                                    break;
-                                case 3:
-                                    feedback = "PERFECT";
-                                    break;
-                                case 4:
-                                    feedback = "YEAH";
-                                    break;
-                            }
-                            console = $"Score: {lastScore.totalScore} Feedback: {feedback}";
-                            Console.Write($"{DateTime.Now.ToString("hh:mm:ss.fff")} - {console} ");
-                            Console.GetCursorPosition();
-                            moveNum++;
-                        }
-                        scoring.AddSample(accData.accX, accData.accY, accData.accZ, accData.mapTime - 0.1f);
-                    }
-                    Console.ReadLine();
-                }
+                File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(recordedData), "jdnow.json"), JsonConvert.SerializeObject(jdnowJSON, Formatting.Indented));
+                console = "Successfully created JDNEXT-JSON and JDNOW-JSON on comparatives directory!";
+                InitialLogic();
             }
+        }
+
+        static bool GetScoreData(ScoreResult scoreResult, int moveID, List<RecordedScore> recordedValues)
+        {            
+            if (scoreResult.moveNum > moveID)
+            {
+                string feedback = string.Empty;
+                switch (scoreResult.rating)
+                {
+                    case 0:
+                        if (scoreResult.isGoldMove)
+                        {
+                            feedback = "MISSYEAH";
+                        }
+                        else
+                        {
+                            feedback = "MISS";
+                        }
+                        break;
+                    case 1:
+                        feedback = "OK";
+                        break;
+                    case 2:
+                        feedback = "GOOD";
+                        break;
+                    case 3:
+                        feedback = "PERFECT";
+                        break;
+                    case 4:
+                        feedback = "YEAH";
+                        break;
+                }
+                recordedValues.Add(new() { feedback = feedback, addedScore = 0, totalScore = scoreResult.totalScore});
+                return true;
+            }
+            return false;
         }
 #elif (DEBUGX64 || RELEASEX64)
         static void ProcessRecordedData()
