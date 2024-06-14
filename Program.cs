@@ -7,6 +7,8 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.ComponentModel;
 using NativeFileDialogSharp;
+using static System.Formats.Asn1.AsnWriter;
+using Newtonsoft.Json.Bson;
 
 namespace scoring_analysis
 {
@@ -98,7 +100,7 @@ namespace scoring_analysis
         static void ProcessRecordedData()
         {
             WriteStaticHeader(true, "Select a file...");
-            DialogResult dialogResult = Dialog.FileOpen("json", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            DialogResult dialogResult = Dialog.FileOpen("json");
             if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
             ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(dialogResult.Path));
             WriteStaticHeader(true, "Verifying file...");
@@ -208,7 +210,7 @@ namespace scoring_analysis
         static void ProcessRecordedData()
         {
             WriteStaticHeader(true, "Select a file...");
-            DialogResult dialogResult = Dialog.FileOpen("json", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            DialogResult dialogResult = Dialog.FileOpen("json");
             if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
             ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(dialogResult.Path));
             WriteStaticHeader(true, "Verifying file...");
@@ -227,77 +229,24 @@ namespace scoring_analysis
 
         static void GenerateUAFJSON(ScoringRecorder recordedData)
         {
-            WriteStaticHeader(true, "Initializing UAF score api...");
-            ScoreManager scoreManager = new();
-            scoreManager.Init();
-            List<RecordedScore> recordedValues = new();
-            float totalScore = 13333f;
-            float goldScore = 1000f;
-            float moveScore = totalScore - goldScore;
-            int goldCount = 0;
-            int moveCount = 0;
-            foreach (Move move in recordedData.moves) 
-            {
-                if (move.goldMove == 1)
-                { 
-                    goldCount++; 
-                } 
-                else 
-                { 
-                    moveCount++; 
-                } 
-            }
-            goldScore = goldScore / goldCount;
-            moveScore = moveScore / moveCount;
+            WriteStaticHeader(true, $"Initializing UAF score api...{newLine}");
+            ScoreManager scoreManager = new(); 
+            scoreManager.Init();            
+            float moveScore = 0f; 
+            float goldScore = 0f; 
             float finalScore = 0f;
+            GetScoreValues(ref moveScore, ref goldScore, recordedData);
+            List<RecordedScore> recordedValues = new();
             foreach (Move move in recordedData.moves)
             {
-                byte[] moveData = Convert.FromBase64String(move.data);
-                fixed (byte* movePointer = &moveData[0])
-                {
-                    scoreManager.StartMoveAnalysis(movePointer, (uint)moveData.Length, move.duration);
-                    foreach (RecordedAccData accData in recordedData.recordedAccData)
-                    {
-                        if (accData.mapTime >= move.time && accData.mapTime <= (move.time + move.duration))
-                        {
-                            float time = InverseLerp(accData.mapTime - 0.1f, move.time, move.time + move.duration);
-                            scoreManager.bUpdateFromProgressRatioAndAccels(time, accData.accX, accData.accY, accData.accZ);
-                        }
-                    }
-                    scoreManager.StopMoveAnalysis();
-                }
-                if (move.goldMove == 1) 
-                {
-                    float percentage = 0f;
-                    for (int i = 1; i < 20; i++)
-                    {
-                        float tempPercentage = scoreManager.GetSignalValue((byte)i);
-                        if (tempPercentage.ToString() != "4,2949673E+09" && tempPercentage > 0) percentage += tempPercentage;
-                    }
-                    percentage = percentage / 100;
-                    if (percentage > 6) percentage = 6;
-                    float score = Single.Lerp(0, moveScore, percentage);
-                    finalScore += score;
-                    recordedValues.Add(new() { feedback = "UNKNOW", addedScore = score, totalScore = finalScore });
-                    Console.WriteLine($"GOLD: {percentage} | Tedency: {scoreManager.GetLastMoveDirectionImpactFactor().ToString()}");
-                } 
-                else
-                {
-                    float percentage = 0f;
-                    for (int i = 1; i < 20; i++)
-                    {
-                        float tempPercentage = scoreManager.GetSignalValue((byte)i);
-                        if (tempPercentage.ToString() != "4,2949673E+09" && tempPercentage > 0) percentage += tempPercentage;
-                    }
-                    percentage = percentage / 100;
-                    if (percentage > 6) percentage = 6;
-                    float score = Single.Lerp(0, moveScore, percentage);
-                    finalScore += score;
-                    recordedValues.Add(new() { feedback = "UNKNOW", addedScore = score, totalScore = finalScore });
-                    Console.WriteLine($"MOVE: {percentage} | Tedency: {scoreManager.GetLastMoveDirectionImpactFactor().ToString()}");
-                }
+                ComputeAccelerometerData(move, Convert.FromBase64String(move.data), ref scoreManager, recordedData);
+                float percentage = GetPercentage(scoreManager);
+                string feedback = GetFeedback(move, percentage);
+                float score = GetScore(move, moveScore, goldScore, percentage);
+                finalScore += score;
+                recordedValues.Add(new() { feedback = feedback, addedScore = score, totalScore = finalScore });
+                Console.WriteLine($"Pointer: {percentage}");
             }
-            Console.WriteLine($"Final Score: {finalScore}");
             ComparativeJSON uafJSON = new()
             {
                 mapName = recordedData.mapName,
@@ -307,7 +256,104 @@ namespace scoring_analysis
             File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(recordedData), "uaf.json"), JsonConvert.SerializeObject(uafJSON, Formatting.Indented));
         }
 
-        public static float InverseLerp(float value, float a, float b)
+        static void GetScoreValues(ref float moveScore, ref float goldScore, ScoringRecorder recordedData)
+        {
+            float totalScore = 13333f;
+            goldScore = 500f;
+            moveScore = totalScore - goldScore;
+            int goldCount = 0;
+            int moveCount = 0;
+            foreach (Move move in recordedData.moves)
+            {
+                if (move.goldMove == 1)
+                {
+                    goldCount++;
+                }
+                else
+                {
+                    moveCount++;
+                }
+            }
+            goldScore = goldScore / goldCount;
+            moveScore = moveScore / moveCount;
+        }
+
+        static void ComputeAccelerometerData(Move move, byte[] moveData, ref ScoreManager scoreManager, ScoringRecorder recordedData)
+        {
+            fixed (byte* movePointer = &moveData[0])
+            {
+                scoreManager.StartMoveAnalysis(movePointer, (uint)moveData.Length, move.duration);
+                foreach (RecordedAccData accData in recordedData.recordedAccData)
+                {
+                    if (accData.mapTime >= move.time && accData.mapTime <= (move.time + move.duration))
+                    {
+                        float time = InverseLerp(accData.mapTime - 0.1f, move.time, move.time + move.duration);
+                        scoreManager.bUpdateFromProgressRatioAndAccels(time, accData.accX, accData.accY, accData.accZ);
+                    }
+                }
+                scoreManager.StopMoveAnalysis();
+            }
+        }
+
+        static float GetPercentage(ScoreManager scoreManager)
+        {
+            float percentage = 0f;
+            for (int i = 1; i < 20; i++)
+            {
+                float tempPercentage = scoreManager.GetSignalValue((byte)i);
+                if (tempPercentage.ToString() != "4,2949673E+09" && tempPercentage > 0) percentage += tempPercentage;
+            }
+            percentage = percentage / 100;
+            if (percentage > 0.1f) percentage = 0.1f;
+            return percentage;
+        }
+
+        static string GetFeedback(Move move, float percentage)
+        {
+            if (percentage < 0.025f)
+            {
+                if (move.goldMove == 1)
+                {
+                    return "MISSYEAH";
+                }
+                else
+                {
+                    return "MISS";
+                }                
+            }
+            else if (percentage < 0.04f)
+            {
+                return "OK";
+            }
+            else if (percentage < 0.06f)
+            {
+                return "GOOD";
+            }
+            else if (percentage < 0.08f)
+            {
+                return "SUPER";
+            }
+            else
+            {
+                return "PERFECT";
+            }
+        }
+
+        static float GetScore(Move move, float moveScore, float goldScore, float percentage)
+        {
+            float score = 0f;
+            if (move.goldMove == 1 && percentage > 0.025f)
+            {
+                score = goldScore;
+            }
+            else if (percentage > 0.025f)
+            {
+                score = Single.Lerp(0, moveScore, percentage) * 10f;
+            }
+            return score;
+        }
+
+        static float InverseLerp(float value, float a, float b)
         {
             if (a == b) { return 0f; }
             return (value - a) / (b - a);
@@ -332,5 +378,7 @@ namespace scoring_analysis
             if (!Directory.Exists(mapComparativesDirectory)) Directory.CreateDirectory(mapComparativesDirectory);
             return mapComparativesDirectory;
         }
+
+
     }
 }
