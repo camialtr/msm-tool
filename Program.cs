@@ -220,8 +220,8 @@ namespace scoring_analysis
             else
             {
                 GenerateUAFJSON(recordedData);
-                //console = "Successfully created JDNEXT-JSON and JDNOW-JSON on comparatives directory!";
-                //InitialLogic();
+                console = "Successfully created UAF-JSON on comparatives directory!";
+                InitialLogic();
             }
         }
 
@@ -232,11 +232,21 @@ namespace scoring_analysis
             scoreManager.Init();
             List<RecordedScore> recordedValues = new();
             float totalScore = 13333f;
-            float goldScore = 1250f;
+            float goldScore = 1000f;
             float moveScore = totalScore - goldScore;
             int goldCount = 0;
-            int moveCount = 0;            
-            foreach (Move move in recordedData.moves) if (move.goldMove == 1) { goldCount++; } else { moveCount++; }
+            int moveCount = 0;
+            foreach (Move move in recordedData.moves) 
+            {
+                if (move.goldMove == 1)
+                { 
+                    goldCount++; 
+                } 
+                else 
+                { 
+                    moveCount++; 
+                } 
+            }
             goldScore = goldScore / goldCount;
             moveScore = moveScore / moveCount;
             float finalScore = 0f;
@@ -245,9 +255,7 @@ namespace scoring_analysis
                 byte[] moveData = Convert.FromBase64String(move.data);
                 fixed (byte* movePointer = &moveData[0])
                 {
-                    ulong measureSetBitfield = ScoreManager.GetMoveMeasureSetBitfieldFromFileData(movePointer, (uint)moveData.Length);
-                    float classifierMoveDuration = ScoreManager.GetMoveDurationFromFileData(movePointer, (uint)moveData.Length);
-                    scoreManager.StartMoveAnalysis(measureSetBitfield, classifierMoveDuration, move.duration);
+                    scoreManager.StartMoveAnalysis(movePointer, (uint)moveData.Length, move.duration);
                     foreach (RecordedAccData accData in recordedData.recordedAccData)
                     {
                         if (accData.mapTime >= move.time && accData.mapTime <= (move.time + move.duration))
@@ -259,15 +267,44 @@ namespace scoring_analysis
                     scoreManager.StopMoveAnalysis();
                 }
                 if (move.goldMove == 1) 
-                { 
-                    finalScore += Single.Lerp(0, goldScore, scoreManager.GetSignalValue(0));
+                {
+                    float percentage = 0f;
+                    for (int i = 1; i < 20; i++)
+                    {
+                        float tempPercentage = scoreManager.GetSignalValue((byte)i);
+                        if (tempPercentage.ToString() != "4,2949673E+09" && tempPercentage > 0) percentage += tempPercentage;
+                    }
+                    percentage = percentage / 100;
+                    if (percentage > 6) percentage = 6;
+                    float score = Single.Lerp(0, moveScore, percentage);
+                    finalScore += score;
+                    recordedValues.Add(new() { feedback = "UNKNOW", addedScore = score, totalScore = finalScore });
+                    Console.WriteLine($"GOLD: {percentage} | Tedency: {scoreManager.GetLastMoveDirectionImpactFactor().ToString()}");
                 } 
                 else
                 {
-                    finalScore += Single.Lerp(0, moveScore, scoreManager.GetSignalValue(0));
+                    float percentage = 0f;
+                    for (int i = 1; i < 20; i++)
+                    {
+                        float tempPercentage = scoreManager.GetSignalValue((byte)i);
+                        if (tempPercentage.ToString() != "4,2949673E+09" && tempPercentage > 0) percentage += tempPercentage;
+                    }
+                    percentage = percentage / 100;
+                    if (percentage > 6) percentage = 6;
+                    float score = Single.Lerp(0, moveScore, percentage);
+                    finalScore += score;
+                    recordedValues.Add(new() { feedback = "UNKNOW", addedScore = score, totalScore = finalScore });
+                    Console.WriteLine($"MOVE: {percentage} | Tedency: {scoreManager.GetLastMoveDirectionImpactFactor().ToString()}");
                 }
             }
             Console.WriteLine($"Final Score: {finalScore}");
+            ComparativeJSON uafJSON = new()
+            {
+                mapName = recordedData.mapName,
+                comparativeType = ComparativeType.UAF,
+                values = recordedValues
+            };
+            File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(recordedData), "uaf.json"), JsonConvert.SerializeObject(uafJSON, Formatting.Indented));
         }
 
         public static float InverseLerp(float value, float a, float b)
