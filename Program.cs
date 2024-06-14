@@ -111,19 +111,10 @@ namespace scoring_analysis
             {
                 GenerateJDNEXTJSON(recordedData);
                 GenerateJDNOWJSON(recordedData);
+                console = "Successfully created JDNEXT-JSON and JDNOW-JSON on comparatives directory!";
+                InitialLogic();
             }
-        }
-
-        static void WriteStaticHeader(bool sleep, string log)
-        {
-            Console.Clear();
-            Console.WriteLine(header);
-            Console.WriteLine($"{commands[1].Replace("[1] ", "")}{newLine}");
-            Console.Write($"[Console]");
-            console = log;            
-            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-            if (sleep) Thread.Sleep(500);
-        }
+        }        
 
         static void GenerateJDNEXTJSON(ScoringRecorder recordedData)
         {
@@ -135,20 +126,11 @@ namespace scoring_analysis
                 values = recordedData.recordedScore
             };
             File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(recordedData), "jdnext.json"), JsonConvert.SerializeObject(jdnextJSON, Formatting.Indented));
-        }
-
-        static string GetOrCreateComparativesDirectory(ScoringRecorder recordedData)
-        {
-            string comparativesDirectory = Path.Combine(Environment.CurrentDirectory, "Comparatives").Replace(@"Assemblies\", "");
-            if (!Directory.Exists(comparativesDirectory)) Directory.CreateDirectory(comparativesDirectory);
-            string mapComparativesDirectory = Path.Combine(comparativesDirectory, recordedData.mapName);
-            if (!Directory.Exists(mapComparativesDirectory)) Directory.CreateDirectory(mapComparativesDirectory);
-            return mapComparativesDirectory;
-        }
+        }        
 
         static void GenerateJDNOWJSON(ScoringRecorder recordedData)
         {
-            WriteStaticHeader(true, "Initializing score api...");
+            WriteStaticHeader(true, "Initializing JDNOW score api...");
             Scoring scoring = new();
             Move lastMove = recordedData.moves.Last();
             int classifiersSuccessCount = 0;
@@ -184,8 +166,6 @@ namespace scoring_analysis
                     values = recordedValues
                 };
                 File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(recordedData), "jdnow.json"), JsonConvert.SerializeObject(jdnowJSON, Formatting.Indented));
-                console = "Successfully created JDNEXT-JSON and JDNOW-JSON on comparatives directory!";
-                InitialLogic();
             }
         }
 
@@ -227,8 +207,93 @@ namespace scoring_analysis
 #elif (DEBUGX64 || RELEASEX64)
         static void ProcessRecordedData()
         {
-            NotImplemented();
+            WriteStaticHeader(true, "Select a file...");
+            DialogResult dialogResult = Dialog.FileOpen("json", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
+            ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(dialogResult.Path));
+            WriteStaticHeader(true, "Verifying file...");
+            if (string.IsNullOrEmpty(recordedData.mapName) || recordedData.moves == null || recordedData.recordedAccData == null || recordedData.recordedScore == null)
+            {
+                console = "Error: Seems like you have selected an incorrect file, verify your file structure or select a valid one!";
+                InitialLogic();
+            }
+            else
+            {
+                GenerateUAFJSON(recordedData);
+                //console = "Successfully created JDNEXT-JSON and JDNOW-JSON on comparatives directory!";
+                //InitialLogic();
+            }
+        }
+
+        static void GenerateUAFJSON(ScoringRecorder recordedData)
+        {
+            WriteStaticHeader(true, "Initializing UAF score api...");
+            ScoreManager scoreManager = new();
+            scoreManager.Init();
+            List<RecordedScore> recordedValues = new();
+            float totalScore = 13333f;
+            float goldScore = 1250f;
+            float moveScore = totalScore - goldScore;
+            int goldCount = 0;
+            int moveCount = 0;            
+            foreach (Move move in recordedData.moves) if (move.goldMove == 1) { goldCount++; } else { moveCount++; }
+            goldScore = goldScore / goldCount;
+            moveScore = moveScore / moveCount;
+            float finalScore = 0f;
+            foreach (Move move in recordedData.moves)
+            {
+                byte[] moveData = Convert.FromBase64String(move.data);
+                fixed (byte* movePointer = &moveData[0])
+                {
+                    ulong measureSetBitfield = ScoreManager.GetMoveMeasureSetBitfieldFromFileData(movePointer, (uint)moveData.Length);
+                    float classifierMoveDuration = ScoreManager.GetMoveDurationFromFileData(movePointer, (uint)moveData.Length);
+                    scoreManager.StartMoveAnalysis(measureSetBitfield, classifierMoveDuration, move.duration);
+                    foreach (RecordedAccData accData in recordedData.recordedAccData)
+                    {
+                        if (accData.mapTime >= move.time && accData.mapTime <= (move.time + move.duration))
+                        {
+                            float time = InverseLerp(accData.mapTime - 0.1f, move.time, move.time + move.duration);
+                            scoreManager.bUpdateFromProgressRatioAndAccels(time, accData.accX, accData.accY, accData.accZ);
+                        }
+                    }
+                    scoreManager.StopMoveAnalysis();
+                }
+                if (move.goldMove == 1) 
+                { 
+                    finalScore += Single.Lerp(0, goldScore, scoreManager.GetSignalValue(0));
+                } 
+                else
+                {
+                    finalScore += Single.Lerp(0, moveScore, scoreManager.GetSignalValue(0));
+                }
+            }
+            Console.WriteLine($"Final Score: {finalScore}");
+        }
+
+        public static float InverseLerp(float value, float a, float b)
+        {
+            if (a == b) { return 0f; }
+            return (value - a) / (b - a);
         }
 #endif
+        static void WriteStaticHeader(bool sleep, string log)
+        {
+            Console.Clear();
+            Console.WriteLine(header);
+            Console.WriteLine($"{commands[1].Replace("[1] ", "")}{newLine}");
+            Console.Write($"[Console]");
+            console = log;
+            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+            if (sleep) Thread.Sleep(500);
+        }
+
+        static string GetOrCreateComparativesDirectory(ScoringRecorder recordedData)
+        {
+            string comparativesDirectory = Path.Combine(Environment.CurrentDirectory, "Comparatives").Replace(@"Assemblies\", "");
+            if (!Directory.Exists(comparativesDirectory)) Directory.CreateDirectory(comparativesDirectory);
+            string mapComparativesDirectory = Path.Combine(comparativesDirectory, recordedData.mapName);
+            if (!Directory.Exists(mapComparativesDirectory)) Directory.CreateDirectory(mapComparativesDirectory);
+            return mapComparativesDirectory;
+        }
     }
 }
