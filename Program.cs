@@ -7,8 +7,6 @@ using Newtonsoft.Json;
 using System.Diagnostics;
 using System.ComponentModel;
 using NativeFileDialogSharp;
-using static System.Formats.Asn1.AsnWriter;
-using Newtonsoft.Json.Bson;
 
 namespace scoring_analysis
 {
@@ -48,7 +46,7 @@ namespace scoring_analysis
                     ProcessRecordedData();
                     break;
                 case "2":
-                    NotImplemented();
+                    CompareJsonData();
                     break;
             }
         }
@@ -99,11 +97,11 @@ namespace scoring_analysis
 #if (DEBUGX86 || RELEASEX86)
         static void ProcessRecordedData()
         {
-            WriteStaticHeader(true, "Select a file...");
+            WriteStaticHeader(true, "Select a file...", 1);
             DialogResult dialogResult = Dialog.FileOpen("json");
             if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
             ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(dialogResult.Path));
-            WriteStaticHeader(true, "Verifying file...");
+            WriteStaticHeader(true, "Verifying file...", 1);
             if (string.IsNullOrEmpty(recordedData.mapName) || recordedData.moves == null || recordedData.recordedAccData == null || recordedData.recordedScore == null)
             {
                 console = "Error: Seems like you have selected an incorrect file, verify your file structure or select a valid one!";
@@ -120,7 +118,7 @@ namespace scoring_analysis
 
         static void GenerateJDNEXTJSON(ScoringRecorder recordedData)
         {
-            WriteStaticHeader(false, "Generating JDNEXT-JSON...");
+            WriteStaticHeader(false, "Generating JDNEXT-JSON...", 1);
             ComparativeJSON jdnextJSON = new()
             {
                 mapName = recordedData.mapName,
@@ -132,7 +130,7 @@ namespace scoring_analysis
 
         static void GenerateJDNOWJSON(ScoringRecorder recordedData)
         {
-            WriteStaticHeader(true, "Initializing JDNOW score api...");
+            WriteStaticHeader(true, "Initializing JDNOW score api...", 1);
             Scoring scoring = new();
             Move lastMove = recordedData.moves.Last();
             int classifiersSuccessCount = 0;
@@ -209,11 +207,11 @@ namespace scoring_analysis
 #elif (DEBUGX64 || RELEASEX64)
         static void ProcessRecordedData()
         {
-            WriteStaticHeader(true, "Select a file...");
+            WriteStaticHeader(true, "Select a file...", 1);
             DialogResult dialogResult = Dialog.FileOpen("json");
             if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
             ScoringRecorder recordedData = JsonConvert.DeserializeObject<ScoringRecorder>(File.ReadAllText(dialogResult.Path));
-            WriteStaticHeader(true, "Verifying file...");
+            WriteStaticHeader(true, "Verifying file...", 1);
             if (string.IsNullOrEmpty(recordedData.mapName) || recordedData.moves == null || recordedData.recordedAccData == null || recordedData.recordedScore == null)
             {
                 console = "Error: Seems like you have selected an incorrect file, verify your file structure or select a valid one!";
@@ -229,7 +227,7 @@ namespace scoring_analysis
 
         static void GenerateUAFJSON(ScoringRecorder recordedData)
         {
-            WriteStaticHeader(true, $"Initializing UAF score api...{newLine}");
+            WriteStaticHeader(true, $"Initializing UAF score api...{newLine}", 1);
             ScoreManager scoreManager = new(); 
             scoreManager.Init();            
             float moveScore = 0f; 
@@ -259,7 +257,7 @@ namespace scoring_analysis
         static void GetScoreValues(ref float moveScore, ref float goldScore, ScoringRecorder recordedData)
         {
             float totalScore = 13333f;
-            goldScore = 500f;
+            goldScore = 750f;
             moveScore = totalScore - goldScore;
             int goldCount = 0;
             int moveCount = 0;
@@ -310,16 +308,17 @@ namespace scoring_analysis
 
         static string GetFeedback(Move move, float percentage)
         {
+            if (move.goldMove == 1 && percentage > 0.025f)
+            {
+                return "YEAH";
+            }
+            else if (move.goldMove == 1 && percentage < 0.025f)
+            {
+                return "MISSYEAH";
+            }
             if (percentage < 0.025f)
             {
-                if (move.goldMove == 1)
-                {
-                    return "MISSYEAH";
-                }
-                else
-                {
-                    return "MISS";
-                }                
+                return "MISS";
             }
             else if (percentage < 0.04f)
             {
@@ -348,7 +347,7 @@ namespace scoring_analysis
             }
             else if (percentage > 0.025f)
             {
-                score = Single.Lerp(0, moveScore, percentage) * 10f;
+                score = Single.Lerp(0, moveScore, percentage / 2) * 10f;
             }
             return score;
         }
@@ -359,11 +358,11 @@ namespace scoring_analysis
             return (value - a) / (b - a);
         }
 #endif
-        static void WriteStaticHeader(bool sleep, string log)
+        static void WriteStaticHeader(bool sleep, string log, int commandID)
         {
             Console.Clear();
             Console.WriteLine(header);
-            Console.WriteLine($"{commands[1].Replace("[1] ", "")}{newLine}");
+            Console.WriteLine($"{commands[commandID].Replace($"[{commandID}] ", "")}{newLine}");
             Console.Write($"[Console]");
             console = log;
             Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
@@ -379,6 +378,61 @@ namespace scoring_analysis
             return mapComparativesDirectory;
         }
 
+        static void CompareJsonData()
+        {
+            WriteStaticHeader(true, "Select a valid folder...", 2);
+            DialogResult dialogResult = Dialog.FolderPicker(Path.Combine(Environment.CurrentDirectory, "Comparatives").Replace(@"Assemblies\", ""));
+            if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
+            
+            try
+            {
+                if (!File.Exists(Path.Combine(dialogResult.Path, "jdnext.json")) || !File.Exists(Path.Combine(dialogResult.Path, "jdnow.json")) || !File.Exists(Path.Combine(dialogResult.Path, "uaf.json")))
+                {
+                    console = $"Error: Seems like you have selected an incorrect folder, verify your folder structure or select a valid one!";
+                    InitialLogic();
+                }
+                ComparativeJSON jdnext; ComparativeJSON jdnow; ComparativeJSON uaf;
+                jdnext = JsonConvert.DeserializeObject<ComparativeJSON>(File.ReadAllText(Path.Combine(dialogResult.Path, "jdnext.json")));
+                jdnow = JsonConvert.DeserializeObject<ComparativeJSON>(File.ReadAllText(Path.Combine(dialogResult.Path, "jdnow.json")));
+                uaf = JsonConvert.DeserializeObject<ComparativeJSON>(File.ReadAllText(Path.Combine(dialogResult.Path, "uaf.json")));
+                if (jdnow.values.Count != jdnext.values.Count || uaf.values.Count != jdnext.values.Count)
+                {
+                    console = "Error: Impossible to compare. These files don't have the same number of recorded moves!";
+                    InitialLogic();
+                }
+                WriteStaticHeader(true, $"Generated comparative:{newLine}{newLine}", 2);
+                Console.Write("JDNEXT".PadRight(39)); Console.Write("JDNOW".PadRight(39)); Console.Write("UAF");
+                Console.Write($"{newLine}" + new string('=', 117));
+                Console.Write($"{newLine}"); Console.Write("Added".PadRight(12)); Console.Write("Total".PadRight(11)); Console.Write("Feedback       |");
+                Console.Write("Added".PadRight(12)); Console.Write("Total".PadRight(11)); Console.Write("Feedback       |");
+                Console.Write("Added".PadRight(12)); Console.Write("Total".PadRight(11)); Console.Write("Feedback       |");
+                for (int i = 0; i < jdnext.values.Count; i++)
+                {
+                    Console.Write($"{newLine}");
+                    GenerateComparative(jdnext, i);
+                    GenerateComparative(jdnow, i);
+                    GenerateComparative(uaf, i);
+                }
+                Console.ReadLine();
+            }
+            catch (Exception)
+            {
+                console = "Error: Verify your files structure before try again!";
+                InitialLogic();
+            }
+        }
 
+        static void GenerateComparative(ComparativeJSON comparative, int index)
+        {            
+            string addedScore = comparative.values[index].addedScore.ToString();
+            while (addedScore.Length != 12) addedScore += " ";
+            Console.Write(addedScore);
+            string addedTotalScore = comparative.values[index].totalScore.ToString();
+            while (addedTotalScore.Length != 11) addedTotalScore += " ";
+            Console.Write(addedTotalScore);
+            string addedFeedback = comparative.values[index].feedback;
+            while (addedFeedback.Length != 15) addedFeedback += " ";
+            Console.Write(addedFeedback + "|");
+        }
     }
 }

@@ -9,7 +9,7 @@ namespace scoring_analysis
     internal class Base
     {
         public static readonly string newLine = Environment.NewLine;
-        public static readonly string version = "0.2.5a";
+        public static readonly string version = "0.5.0b";
 #if (DEBUGX86 || RELEASEX86)
         public static readonly string architecture = "[x86]";
         public static readonly string preset = "JDNOW API";
