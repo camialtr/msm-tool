@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace JDNow
 {
@@ -7,9 +6,9 @@ namespace JDNow
     {
         private readonly int scoringID = -1;
 #if (DEBUGX86 || DEBUGX64)
-        private const string dllPath = @"Assemblies\Scoring.dll";
+        private const string dllPath = @"Assemblies\jdScoring.dll";
 #elif (RELEASEX86 || RELEASEX64)
-        private const string dllPath = @"Scoring.dll";
+        private const string dllPath = @"jdScoring.dll";
 #endif
 
         [DllImport($"{dllPath}")]
