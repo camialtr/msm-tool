@@ -1,8 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace JDNow
+namespace JdScoring
 {
-    public class Scoring
+    public class ScoreManager
     {
         private readonly int scoringID = -1;
 #if (DEBUGX86 || DEBUGX64)
@@ -14,7 +14,7 @@ namespace JDNow
         [DllImport($"{dllPath}")]
         private static extern int init();
 
-        public Scoring()
+        public ScoreManager()
         {
             scoringID = init();
         }

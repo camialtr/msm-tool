@@ -1,11 +1,7 @@
-﻿#if (DEBUGX86 || RELEASEX86)
-using JDNow;
-#elif (DEBUGX64 || RELEASEX64)
-using MoveSpaceWrapper;
-#endif
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Diagnostics;
 using NativeFileDialogSharp;
+using System.Runtime.InteropServices;
 
 #pragma warning disable CS8600
 #pragma warning disable CS8602
@@ -40,17 +36,17 @@ namespace jd_tools
         static void ProcessRecordedData(string recordedAccDataPath)
         {
             List<RecordedAccData> recordedData = JsonConvert.DeserializeObject<List<RecordedAccData>>(File.ReadAllText(recordedAccDataPath));
-            Scoring scoring = InitializeScoring(recordedAccDataPath.Replace($@"\{Path.GetFileName(recordedAccDataPath)}", "").Replace(@"accdata", ""), recordedData[0].coachID - 1);
+            JdScoring.ScoreManager scoreManager = InitializeScoring(recordedAccDataPath.Replace($@"\{Path.GetFileName(recordedAccDataPath)}", "").Replace(@"accdata", ""), recordedData[0].coachID - 1);
             List<RecordedScore> recordedValues = new();
             int moveID = 0; float lastScore = 0f;
             foreach (RecordedAccData accData in recordedData)
             {
-                ScoreResult scoreResult = scoring.GetLastScore();
+                JdScoring.ScoreResult scoreResult = scoreManager.GetLastScore();
                 (int, float) scoreData = GetScoreData(scoreResult, moveID, lastScore, recordedValues);
                 moveID = scoreData.Item1; lastScore = scoreData.Item2;
-                scoring.AddSample(accData.accX, accData.accY, accData.accZ, accData.mapTime);
+                scoreManager.AddSample(accData.accX, accData.accY, accData.accZ, accData.mapTime);
             }
-            scoring.EndScore();
+            scoreManager.EndScore();
             ComparativeJSON json = new()
             {
                 comparativeType = ComparativeType.jdScoring,
@@ -60,9 +56,9 @@ namespace jd_tools
             ProceedToMainFunction();
         }
 
-        static Scoring InitializeScoring(string rootPath, int coachID)
+        static JdScoring.ScoreManager InitializeScoring(string rootPath, int coachID)
         {
-            Scoring scoring = new();
+            JdScoring.ScoreManager scoreManager = new();
             Timeline timeline = JsonConvert.DeserializeObject<Timeline>(File.ReadAllText(rootPath + "timeline.json"));
             List<MoveFile> moveFiles = new();
             List<Move> moves = timeline.moves.FindAll(x => x.coachID == coachID);
@@ -79,13 +75,13 @@ namespace jd_tools
             {
                 moveIndex++;
                 MoveFile file = moveFiles.Find(x => x.name == move.name);
-                scoring.LoadClassifier(move.name, file.data);
-                scoring.LoadMove(move.name, (int)(move.time * 1000), (int)(move.duration * 1000), Convert.ToBoolean(move.goldMove), moveIndex.Equals(moves.Count));
+                scoreManager.LoadClassifier(move.name, file.data);
+                scoreManager.LoadMove(move.name, (int)(move.time * 1000), (int)(move.duration * 1000), Convert.ToBoolean(move.goldMove), moveIndex.Equals(moves.Count));
             }
-            return scoring;
+            return scoreManager;
         }
 
-        static (int, float) GetScoreData(ScoreResult scoreResult, int moveID, float lastScore, List<RecordedScore> recordedValues)
+        static (int, float) GetScoreData(JdScoring.ScoreResult scoreResult, int moveID, float lastScore, List<RecordedScore> recordedValues)
         {
             if (scoreResult.moveNum == moveID)
             {
@@ -203,7 +199,7 @@ namespace jd_tools
             float goldScoreValue = 0f;
             float totalScore = 0f;
             GetScoreValues(ref moveScoreValue, ref goldScoreValue, moves);
-            ScoreManager scoreManager = new();
+            MoveSpaceWrapper.ScoreManager scoreManager = new();
             scoreManager.Init(true, 60f);
             foreach (Move move in moves)
             {
@@ -214,17 +210,15 @@ namespace jd_tools
                     totalScore += score;
                     string feedback = GetFeedback(move, energyAndPercentage.Item2);
                     recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = score, totalScore = totalScore, feedback = feedback });
+                    continue;
+                }
+                if (move.goldMove == 1)
+                {
+                    recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = 0f, totalScore = totalScore, feedback = "MISSYEAH" });
                 }
                 else
                 {
-                    if (move.goldMove == 1)
-                    {
-                        recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = 0f, totalScore = totalScore, feedback = "MISSYEAH" });
-                    }
-                    else
-                    {
-                        recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = 0f, totalScore = totalScore, feedback = "MISS" });
-                    }
+                    recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = 0f, totalScore = totalScore, feedback = "MISS" });
                 }
             }
             scoreManager.Dispose();
@@ -240,7 +234,7 @@ namespace jd_tools
         static void GetScoreValues(ref float moveScore, ref float goldScore, List<Move> moves)
         {
             float totalScore = 13333f;
-            goldScore = 750f;
+            goldScore = 1000f;
             moveScore = totalScore - goldScore;
             int goldCount = 0;
             int moveCount = 0;
@@ -259,10 +253,10 @@ namespace jd_tools
             moveScore /= moveCount;
         }
 
-        static (float, float) ComputeMoveSpace(ScoreManager scoreManager, Move move, List<RecordedAccData> recordedAccData, string rootPath)
-        {            
-            MoveSpaceFileHandler file = MoveSpaceFileHandler.GetFile(rootPath + $@"moves\{move.name}.msm");
-            scoreManager.StartMoveAnalysis((void*)file.FileContent, (uint)file.Length, move.duration);
+        static (float, float) ComputeMoveSpace(MoveSpaceWrapper.ScoreManager scoreManager, Move move, List<RecordedAccData> recordedAccData, string rootPath)
+        {
+            (IntPtr, long) file = HandleMoveSpaceFile(File.ReadAllBytes(rootPath + $@"moves\{move.name}.msm"));
+            scoreManager.StartMoveAnalysis((void*)file.Item1, (uint)file.Item2, move.duration);
             List<RecordedAccData> samples = GetSampleDataFromTimeRange(recordedAccData, move.time, move.duration);
             for (int sID = 0; sID < samples.Count; ++sID)
             {
@@ -280,8 +274,15 @@ namespace jd_tools
             scoreManager.StopMoveAnalysis();
             float scoreEnergy = scoreManager.GetLastMoveEnergyAmount();
             float scorePercentage = scoreManager.GetLastMovePercentageScore();
-            file.Dispose();
+            Marshal.FreeHGlobal(file.Item1);
             return (scoreEnergy, scorePercentage);
+        }
+
+        static (IntPtr content, long length) HandleMoveSpaceFile(byte[] data)
+        {
+            nint content = Marshal.AllocHGlobal(data.Length);
+            Marshal.Copy(data, 0, content, data.Length);
+            return (content, data.Length);
         }
 
         static List<RecordedAccData> GetSampleDataFromTimeRange(List<RecordedAccData> recordedAccData, float time, float duration)
