@@ -18,18 +18,18 @@ namespace jd_tools
 #if (DEBUGX86 || RELEASEX86)
         static void Main(string[] args)
         {
-            Console.Clear();
+            HandleBoot();
             if (args.Length == 0)
             {
                 Console.WriteLine("This program is a sub function from the original one and is not meant to be used alone!");
-                Console.ReadLine();
+                Console.ReadKey();
                 Environment.Exit(0);
             }
             switch (args[0])
             {
                 default:
                     Console.WriteLine("This program is a sub function from the original one and is not meant to be used alone!");
-                    Console.ReadLine();
+                    Console.ReadKey();
                     break;
                 case "accdata":
                     ProcessRecordedData(args[1].Replace("|SPACE|", " "));
@@ -39,11 +39,11 @@ namespace jd_tools
 
         static void ProcessRecordedData(string recordedAccDataPath)
         {
-            List<NewRecordedAccData> recordedData = JsonConvert.DeserializeObject<List<NewRecordedAccData>>(File.ReadAllText(recordedAccDataPath));
+            List<RecordedAccData> recordedData = JsonConvert.DeserializeObject<List<RecordedAccData>>(File.ReadAllText(recordedAccDataPath));
             Scoring scoring = InitializeScoring(recordedAccDataPath.Replace($@"\{Path.GetFileName(recordedAccDataPath)}", "").Replace(@"accdata", ""), recordedData[0].coachID - 1);
             List<RecordedScore> recordedValues = new();
             int moveID = 0; float lastScore = 0f;
-            foreach (NewRecordedAccData accData in recordedData)
+            foreach (RecordedAccData accData in recordedData)
             {
                 ScoreResult scoreResult = scoring.GetLastScore();
                 (int, float) scoreData = GetScoreData(scoreResult, moveID, lastScore, recordedValues);
@@ -115,7 +115,7 @@ namespace jd_tools
                         feedback = "YEAH";
                         break;
                 }
-                recordedValues.Add(new() { feedback = feedback, addedScore = scoreResult.totalScore - lastScore, totalScore = scoreResult.totalScore });
+                recordedValues.Add(new() { energy = 0f, addedScore = scoreResult.totalScore - lastScore, totalScore = scoreResult.totalScore, feedback = feedback });
                 moveID++; lastScore = scoreResult.totalScore;
             }
             return (moveID, lastScore);
@@ -123,6 +123,7 @@ namespace jd_tools
         
         static void ProceedToMainFunction()
         {
+            Console.Clear();
             ProcessStartInfo processStartInfo = new()
             {
                 FileName = Path.Combine(Environment.CurrentDirectory, "jd-tools.exe").Replace("x86", "x64"),
@@ -133,6 +134,7 @@ namespace jd_tools
 #elif (DEBUGX64 || RELEASEX64)
         static void Main(string[] args)
         {
+            HandleBoot();
             if (args.Length == 0)
             {
                 InitialLogic();
@@ -183,10 +185,10 @@ namespace jd_tools
             WriteStaticHeader(true, $"Select a file...", 0);
             DialogResult dialogResult = Dialog.FileOpen("json", mapsPath);
             if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
-            List<NewRecordedAccData> recordedAccData = new();
+            List<RecordedAccData> recordedAccData = new();
             try
             {
-                recordedAccData = JsonConvert.DeserializeObject<List<NewRecordedAccData>>(File.ReadAllText(dialogResult.Path));
+                recordedAccData = JsonConvert.DeserializeObject<List<RecordedAccData>>(File.ReadAllText(dialogResult.Path));
             }
             catch
             {
@@ -202,16 +204,29 @@ namespace jd_tools
             float totalScore = 0f;
             GetScoreValues(ref moveScoreValue, ref goldScoreValue, moves);
             ScoreManager scoreManager = new();
-            scoreManager.Init(1f, 1f, 1f, 1f, 60f);
+            scoreManager.Init(true, 60f);
             foreach (Move move in moves)
             {
-                float percentage = ComputeMoveSpace(scoreManager, move, recordedAccData, rootPath);
-                float score = GetScore(move, moveScoreValue, goldScoreValue, percentage);
-                totalScore += score;
-                string feedback = GetFeedback(move, percentage);
-                recordedValues.Add(new() { addedScore = score, totalScore = totalScore, feedback = feedback });
+                (float, float) energyAndPercentage = ComputeMoveSpace(scoreManager, move, recordedAccData, rootPath);
+                if (energyAndPercentage.Item1 > 0.2f)
+                {
+                    float score = GetScore(move, moveScoreValue, goldScoreValue, energyAndPercentage.Item2);
+                    totalScore += score;
+                    string feedback = GetFeedback(move, energyAndPercentage.Item2);
+                    recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = score, totalScore = totalScore, feedback = feedback });
+                }
+                else
+                {
+                    if (move.goldMove == 1)
+                    {
+                        recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = 0f, totalScore = totalScore, feedback = "MISSYEAH" });
+                    }
+                    else
+                    {
+                        recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = 0f, totalScore = totalScore, feedback = "MISS" });
+                    }
+                }
             }
-            Console.ReadKey();
             scoreManager.Dispose();
             ComparativeJSON json = new()
             {
@@ -240,18 +255,18 @@ namespace jd_tools
                     moveCount++;
                 }
             }
-            goldScore = goldScore / goldCount;
-            moveScore = moveScore / moveCount;
+            goldScore /= goldCount;
+            moveScore /= moveCount;
         }
 
-        static float ComputeMoveSpace(ScoreManager scoreManager, Move move, List<NewRecordedAccData> recordedAccData, string rootPath)
+        static (float, float) ComputeMoveSpace(ScoreManager scoreManager, Move move, List<RecordedAccData> recordedAccData, string rootPath)
         {            
             MoveSpaceFileHandler file = MoveSpaceFileHandler.GetFile(rootPath + $@"moves\{move.name}.msm");
             scoreManager.StartMoveAnalysis((void*)file.FileContent, (uint)file.Length, move.duration);
-            List<NewRecordedAccData> samples = GetSampleDataFromTimeRange(recordedAccData, move.time, move.duration);
+            List<RecordedAccData> samples = GetSampleDataFromTimeRange(recordedAccData, move.time, move.duration);
             for (int sID = 0; sID < samples.Count; ++sID)
             {
-                NewRecordedAccData sample = samples[sID];
+                RecordedAccData sample = samples[sID];
                 if (sID == 0) continue;
                 float prevRatio = sID == 0 ? 0.0f : (samples[sID - 1].mapTime - move.time) / move.duration;
                 float currentRatio = (sample.mapTime - move.time) / move.duration;
@@ -263,15 +278,16 @@ namespace jd_tools
                 }
             }
             scoreManager.StopMoveAnalysis();
+            float scoreEnergy = scoreManager.GetLastMoveEnergyAmount();
             float scorePercentage = scoreManager.GetLastMovePercentageScore();
             file.Dispose();
-            return scorePercentage;
+            return (scoreEnergy, scorePercentage);
         }
 
-        static List<NewRecordedAccData> GetSampleDataFromTimeRange(List<NewRecordedAccData> recordedAccData, float time, float duration)
+        static List<RecordedAccData> GetSampleDataFromTimeRange(List<RecordedAccData> recordedAccData, float time, float duration)
         {
-            List<NewRecordedAccData> toReturn = new();
-            foreach (NewRecordedAccData accData in recordedAccData)
+            List<RecordedAccData> toReturn = new();
+            foreach (RecordedAccData accData in recordedAccData)
             {
                 if (accData.mapTime >= time && accData.mapTime <= (time + duration))
                 {
@@ -292,11 +308,11 @@ namespace jd_tools
         static float GetScore(Move move, float moveScoreValue, float goldScoreValue, float percentage)
         {
             float score = 0f;
-            if (move.goldMove == 1)
+            if (move.goldMove == 1 && percentage > 70.0f)
             {
                 score = Single.Lerp(0f, goldScoreValue, percentage / 100);
             }
-            else
+            else if (percentage > 25.0f)
             {
                 score = Single.Lerp(0f, moveScoreValue, percentage / 100);
             }
@@ -346,7 +362,7 @@ namespace jd_tools
             processStartInfo.FileName = processStartInfo.FileName.Replace(@"Assemblies\", "");
 #endif
             Process.Start(processStartInfo);
-        }
+        }        
 
         static void Compare()
         {
@@ -360,10 +376,10 @@ namespace jd_tools
             ComparativeJSON jdScoring = JsonConvert.DeserializeObject<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "jdScoring.json")));            
             ComparativeJSON moveSpaceWrapper = JsonConvert.DeserializeObject<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "MoveSpaceWrapper.json")));
             WriteStaticHeader(false, $"Generated comparative:{newLine}{newLine}", 0);
-            Console.Write("jdScoring".PadRight(37) + "MoveSpaceWrapper");
-            Console.Write($"{newLine}" + new string('=', 74));
-            Console.Write($"{newLine}"); Console.Write("Added".PadRight(12) + "Total".PadRight(12) + "Feedback".PadRight(12) + "|");
-            Console.Write("Added".PadRight(12) + "Total".PadRight(12) + "Feedback".PadRight(12) + "|");
+            Console.Write("jdScoring".PadRight(49) + "MoveSpaceWrapper");
+            Console.Write($"{newLine}" + new string('=', 98));
+            Console.Write($"{newLine}"); Console.Write("Energy".PadRight(12) + "Score".PadRight(12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|");
+            Console.Write("Energy".PadRight(12) + "Score".PadRight(12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|");
             for (int i = 0; i < jdScoring.values.Count; i++)
             {
                 Console.Write($"{newLine}");
@@ -371,9 +387,9 @@ namespace jd_tools
                 GenerateComparative(moveSpaceWrapper, i);
             }
             Directory.Delete(comparativesDirectory, true);
-            Console.Write($"{newLine}" + new string('=', 74));
-            Console.Write($"{newLine}Type any key to exit...");
-            Console.Write($"{newLine}" + new string('=', 74));
+            Console.Write($"{newLine}" + new string('=', 98));
+            Console.Write($"{newLine}Press any key to exit...");
+            Console.Write($"{newLine}" + new string('=', 98));
             Console.CursorVisible = false;
             Console.ReadKey();
             Console.CursorVisible = true;
@@ -381,9 +397,26 @@ namespace jd_tools
             InitialLogic();
         }
 #endif
+        static void HandleBoot()
+        {
+            string settingsFilePath = Environment.CurrentDirectory.Replace(@"\Assemblies", "") + @"\settings.json";
+            if (!File.Exists(settingsFilePath))
+            {
+                Settings defaultSettings = new()
+                {
+                    mapsPath = @"D:\Just Dance\just-dance-next\Just Dance Next_Data\Maps"
+                };
+                File.WriteAllText(settingsFilePath, JsonConvert.SerializeObject(defaultSettings));
+            }
+            Settings settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFilePath).Replace("\\", @"\"));
+            mapsPath = settings.mapsPath;
+        }
+
         static void GenerateComparative(ComparativeJSON comparative, int index)
         {
-            Console.Write(comparative.values[index].addedScore.ToString().PadRight(12) + comparative.values[index].totalScore.ToString().PadRight(12) + comparative.values[index].feedback.ToString().PadRight(12) + "|");
+            if (comparative.comparativeType == ComparativeType.MoveSpaceWrapper) Console.Write(comparative.values[index].energy.ToString("n2").PadRight(12));
+            else Console.Write("NA".PadRight(12));
+            Console.Write(comparative.values[index].addedScore.ToString("n2").PadRight(12) + comparative.values[index].totalScore.ToString("n2").PadRight(12) + comparative.values[index].feedback.PadRight(12) + "|");
         }
 
         static void WriteStaticHeader(bool sleep, string log, int commandID)

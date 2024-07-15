@@ -3,7 +3,7 @@
     internal class Base
     {
         public static readonly string newLine = Environment.NewLine;
-        public static readonly string version = "0.2.1a";
+        public static readonly string version = "0.2.2b";
 #if (DEBUGX86 || RELEASEX86)
         public static readonly string architecture = "[x86]";
 #elif (DEBUGX64 || RELEASEX64)
@@ -15,20 +15,12 @@
         };
         public static readonly string header = "Just Dance Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
         public static string console = "...";
-        public const string mapsPath = @"D:\Just Dance\just-dance-next\Just Dance Next_Data\Maps";
+        public static string mapsPath = "";
     }
 
-    public struct RecordedScore
+    public struct Settings
     {
-        public string feedback;
-        public float addedScore;
-        public float totalScore;
-    }
-
-    public struct ComparativeJSON
-    {
-        public ComparativeType comparativeType;
-        public List<RecordedScore> values;
+        public string mapsPath;
     }
 
     public enum ComparativeType
@@ -36,7 +28,7 @@
         jdScoring, MoveSpaceWrapper
     }
 
-    public struct NewRecordedAccData
+    public struct RecordedAccData
     {
         public int coachID;
         public float accX;
@@ -63,5 +55,19 @@
         public string name;
         public int goldMove;
         public int coachID;
+    }    
+
+    public struct RecordedScore
+    {
+        public float energy;
+        public float addedScore;
+        public float totalScore;
+        public string feedback;
+    }
+
+    public struct ComparativeJSON
+    {
+        public ComparativeType comparativeType;
+        public List<RecordedScore> values;
     }
 }
