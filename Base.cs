@@ -21,12 +21,7 @@
     public struct Settings
     {
         public string mapsPath;
-    }
-
-    public enum ComparativeType
-    {
-        jdScoring, MoveSpaceWrapper
-    }
+    }    
 
     public struct RecordedAccData
     {
@@ -39,8 +34,8 @@
 
     public struct MoveFile
     {
-        public string name;
-        public byte[] data;
+        public IntPtr data;
+        public uint length;
     }
 
     public struct Timeline
@@ -55,7 +50,13 @@
         public string name;
         public int goldMove;
         public int coachID;
-    }    
+    }
+
+    public struct ScoreResult
+    {
+        public float energy;
+        public float percentage;
+    }
 
     public struct RecordedScore
     {
@@ -63,6 +64,11 @@
         public float addedScore;
         public float totalScore;
         public string feedback;
+    }
+
+    public enum ComparativeType
+    {
+        jdScoring, MoveSpaceWrapper
     }
 
     public struct ComparativeJSON

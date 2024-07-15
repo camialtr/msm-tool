@@ -203,22 +203,22 @@ namespace jd_tools
             scoreManager.Init(true, 60f);
             foreach (Move move in moves)
             {
-                (float, float) energyAndPercentage = ComputeMoveSpace(scoreManager, move, recordedAccData, rootPath);
-                if (energyAndPercentage.Item1 > 0.2f)
+                ScoreResult scoreResult = ComputeMoveSpace(scoreManager, move, recordedAccData, rootPath);
+                if (scoreResult.energy > 0.2f)
                 {
-                    float score = GetScore(move, moveScoreValue, goldScoreValue, energyAndPercentage.Item2);
+                    float score = GetScore(move, moveScoreValue, goldScoreValue, scoreResult.percentage);
                     totalScore += score;
-                    string feedback = GetFeedback(move, energyAndPercentage.Item2);
-                    recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = score, totalScore = totalScore, feedback = feedback });
+                    string feedback = GetFeedback(move, scoreResult.percentage);
+                    recordedValues.Add(new() { energy = scoreResult.energy, addedScore = score, totalScore = totalScore, feedback = feedback });
                     continue;
                 }
                 if (move.goldMove == 1)
                 {
-                    recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = 0f, totalScore = totalScore, feedback = "MISSYEAH" });
+                    recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = "MISSYEAH" });
                 }
                 else
                 {
-                    recordedValues.Add(new() { energy = energyAndPercentage.Item1, addedScore = 0f, totalScore = totalScore, feedback = "MISS" });
+                    recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = "MISS" });
                 }
             }
             scoreManager.Dispose();
@@ -253,10 +253,10 @@ namespace jd_tools
             moveScore /= moveCount;
         }
 
-        static (float, float) ComputeMoveSpace(MoveSpaceWrapper.ScoreManager scoreManager, Move move, List<RecordedAccData> recordedAccData, string rootPath)
+        static ScoreResult ComputeMoveSpace(MoveSpaceWrapper.ScoreManager scoreManager, Move move, List<RecordedAccData> recordedAccData, string rootPath)
         {
-            (IntPtr, long) file = HandleMoveSpaceFile(File.ReadAllBytes(rootPath + $@"moves\{move.name}.msm"));
-            scoreManager.StartMoveAnalysis((void*)file.Item1, (uint)file.Item2, move.duration);
+            MoveFile file = GetMoveFileFromByteArray(File.ReadAllBytes(rootPath + $@"moves\{move.name}.msm"));
+            scoreManager.StartMoveAnalysis((void*)file.data, file.length, move.duration);
             List<RecordedAccData> samples = GetSampleDataFromTimeRange(recordedAccData, move.time, move.duration);
             for (int sID = 0; sID < samples.Count; ++sID)
             {
@@ -274,15 +274,19 @@ namespace jd_tools
             scoreManager.StopMoveAnalysis();
             float scoreEnergy = scoreManager.GetLastMoveEnergyAmount();
             float scorePercentage = scoreManager.GetLastMovePercentageScore();
-            Marshal.FreeHGlobal(file.Item1);
-            return (scoreEnergy, scorePercentage);
+            Marshal.FreeHGlobal(file.data);
+            return new() { energy = scoreEnergy, percentage = scorePercentage};
         }
 
-        static (IntPtr content, long length) HandleMoveSpaceFile(byte[] data)
+        static MoveFile GetMoveFileFromByteArray(byte[] data)
         {
-            nint content = Marshal.AllocHGlobal(data.Length);
-            Marshal.Copy(data, 0, content, data.Length);
-            return (content, data.Length);
+            MoveFile file = new()
+            {
+                data = Marshal.AllocHGlobal(data.Length),
+                length = (uint)data.Length
+            };
+            Marshal.Copy(data, 0, file.data, data.Length);
+            return file;
         }
 
         static List<RecordedAccData> GetSampleDataFromTimeRange(List<RecordedAccData> recordedAccData, float time, float duration)
