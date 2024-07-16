@@ -38,6 +38,12 @@
         public uint length;
     }
 
+    public struct _s_MoveFile
+    {
+        public string name;
+        public byte[] data;
+    }
+
     public struct Timeline
     {
         public List<Move> moves;

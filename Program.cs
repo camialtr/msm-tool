@@ -60,7 +60,7 @@ namespace jd_tools
         {
             JdScoring.ScoreManager scoreManager = new();
             Timeline timeline = JsonConvert.DeserializeObject<Timeline>(File.ReadAllText(rootPath + "timeline.json"));
-            List<MoveFile> moveFiles = new();
+            List<_s_MoveFile> moveFiles = new();
             List<Move> moves = timeline.moves.FindAll(x => x.coachID == coachID);
             foreach (string file in Directory.GetFiles(Path.Combine(rootPath, "moves")))
             {
@@ -74,7 +74,7 @@ namespace jd_tools
             foreach (Move move in moves)
             {
                 moveIndex++;
-                MoveFile file = moveFiles.Find(x => x.name == move.name);
+                _s_MoveFile file = moveFiles.Find(x => x.name == move.name);
                 scoreManager.LoadClassifier(move.name, file.data);
                 scoreManager.LoadMove(move.name, (int)(move.time * 1000), (int)(move.duration * 1000), Convert.ToBoolean(move.goldMove), moveIndex.Equals(moves.Count));
             }
