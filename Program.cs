@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using NativeFileDialogSharp;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 
 #pragma warning disable CS8600
 #pragma warning disable CS8602
@@ -28,12 +29,12 @@ namespace jd_tools
                     Console.ReadKey();
                     break;
                 case "accdata":
-                    ProcessRecordedData(args[1].Replace("|SPACE|", " "));
+                    ProcessRecordedDataLocal(args[1].Replace("|SPACE|", " "));
                     break;
             }
         }
 
-        static void ProcessRecordedData(string recordedAccDataPath)
+        static void ProcessRecordedDataLocal(string recordedAccDataPath)
         {
             List<RecordedAccData> recordedData = JsonConvert.DeserializeObject<List<RecordedAccData>>(File.ReadAllText(recordedAccDataPath));
             JdScoring.ScoreManager scoreManager = InitializeScoring(recordedAccDataPath.Replace($@"\{Path.GetFileName(recordedAccDataPath)}", "").Replace(@"accdata", ""), recordedData[0].coachID - 1);
@@ -145,7 +146,7 @@ namespace jd_tools
                     Compare();
                     break;
             }
-        }
+        }        
 
         static void NotImplemented()
         {
@@ -153,7 +154,7 @@ namespace jd_tools
             InitialLogic();
         }
 
-        static void InitialLogic()
+        public static void InitialLogic()
         {
             Console.Clear();
             Console.WriteLine(header);
@@ -171,12 +172,42 @@ namespace jd_tools
                     InitialLogic();
                     break;
                 case "0":
-                    ProcessRecordedData();
+                    PickCompareCommand();
                     break;
             }
         }
 
-        static void ProcessRecordedData()
+        static void PickCompareCommand()
+        {
+            Console.Clear();
+            Console.WriteLine(header);
+            Console.WriteLine($"Select an option below: {newLine}");
+            foreach (string command in compareCommands) Console.WriteLine(command);
+            Console.Write($"{newLine}Type code: ");
+            Console.Write($"{newLine}{newLine}[Console]");
+            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+            Console.SetCursorPosition(11, 6 + compareCommands.Length);
+            string? stringTyped = Console.ReadLine();
+            switch (stringTyped)
+            {
+                default:
+                    console = "Invalid option, try again!";
+                    PickCompareCommand();
+                    break;
+                case "0":
+                    console = "...";
+                    InitialLogic();
+                    break;
+                case "1":
+                    ProcessRecordedDataLocal();
+                    break;
+                case "2":
+                    ProcessRecordedDataOnline();
+                    break;
+            } 
+        }
+
+        static void ProcessRecordedDataLocal()
         {
             WriteStaticHeader(true, $"Select a file...", 0);
             DialogResult dialogResult = Dialog.FileOpen("json", mapsPath);
@@ -195,10 +226,8 @@ namespace jd_tools
             Timeline timeline = JsonConvert.DeserializeObject<Timeline>(File.ReadAllText(rootPath + "timeline.json"));
             List<Move> moves = timeline.moves.FindAll(x => x.coachID == recordedAccData[0].coachID - 1);
             List<RecordedScore> recordedValues = new();
-            float moveScoreValue = 0f;
-            float goldScoreValue = 0f;
             float totalScore = 0f;
-            GetScoreValues(ref moveScoreValue, ref goldScoreValue, moves);
+            (float goldScoreValue, float moveScoreValue) = GetScoreValues(moves);
             MoveSpaceWrapper.ScoreManager scoreManager = new();
             scoreManager.Init(true, 60f);
             foreach (Move move in moves)
@@ -231,26 +260,75 @@ namespace jd_tools
             ProceedToSubFunction(dialogResult.Path);
         }
 
-        static void GetScoreValues(ref float moveScore, ref float goldScore, List<Move> moves)
+        static void ProcessRecordedDataOnline()
         {
-            float totalScore = 13333f;
-            goldScore = 1000f;
-            moveScore = totalScore - goldScore;
-            int goldCount = 0;
-            int moveCount = 0;
+            WriteStaticHeader(true, $"Select a file...", 0);
+            DialogResult dialogResult = Dialog.FileOpen("json", mapsPath);
+            if (dialogResult.IsCancelled) { console = "Operation cancelled..."; InitialLogic(); }
+            List<RecordedAccData> recordedAccData = new();
+            try
+            {
+                recordedAccData = JsonConvert.DeserializeObject<List<RecordedAccData>>(File.ReadAllText(dialogResult.Path));
+            }
+            catch
+            {
+                console = "Error: Seems like you have selected an incorrect file, verify your file structure or select a valid one!";
+                InitialLogic();
+            }
+            string rootPath = dialogResult.Path.Replace($@"\{Path.GetFileName(dialogResult.Path)}", "").Replace(@"accdata", "");
+            Timeline timeline = JsonConvert.DeserializeObject<Timeline>(File.ReadAllText(rootPath + "timeline.json"));
+            List<Move> moves = timeline.moves.FindAll(x => x.coachID == recordedAccData[0].coachID - 1);
+            List<RecordedScore> recordedValues = new();
+            float totalScore = 0f;
+            (float goldScoreValue, float moveScoreValue) = GetScoreValues(moves);
             foreach (Move move in moves)
             {
+                ScoreRequest scoreRequest = new()
+                {
+                    move = move,
+                    moveFileData = File.ReadAllBytes(rootPath + $@"moves\{move.name}.msm"),
+                    recordedAccData = GetSampleDataFromTimeRange(recordedAccData, move.time, move.duration)
+                };
+                HttpClient client = new();
+                string requestContent = client.PostAsync(apiLink + "ScoreResult", new StringContent(JsonConvert.SerializeObject(scoreRequest, Formatting.Indented))).Result.Content.ReadAsStringAsync().Result;
+                ScoreResult scoreResult = JsonConvert.DeserializeObject<ScoreResult>(requestContent);
+                if (scoreResult.energy > 0.2f)
+                {
+                    float score = GetScore(move, moveScoreValue, goldScoreValue, scoreResult.percentage);
+                    totalScore += score;
+                    string feedback = GetFeedback(move, scoreResult.percentage);
+                    recordedValues.Add(new() { energy = scoreResult.energy, addedScore = score, totalScore = totalScore, feedback = feedback });
+                    continue;
+                }
                 if (move.goldMove == 1)
                 {
-                    goldCount++;
+                    recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = "MISSYEAH" });
                 }
                 else
                 {
-                    moveCount++;
+                    recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = "MISS" });
                 }
             }
-            goldScore /= goldCount;
-            moveScore /= moveCount;
+            ComparativeJSON json = new()
+            {
+                comparativeType = ComparativeType.MoveSpaceWrapper,
+                values = recordedValues
+            };
+            File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(), "MoveSpaceWrapper.json"), JsonConvert.SerializeObject(json, Formatting.Indented));
+            ProceedToSubFunction(dialogResult.Path);
+        }
+
+        public static (float goldValue, float moveValue) GetScoreValues(List<Move> moves)
+        {
+            int goldCount = 0; int moveCount = 0;
+            foreach (Move move in moves)
+            {
+                if (move.goldMove == 1) goldCount++;
+                else moveCount++;
+            }
+            float moveValue = 13333f / (5 * goldCount + moveCount);
+            float goldValue = moveValue * 5;
+            return (goldValue, moveValue);
         }
 
         static ScoreResult ComputeMoveSpace(MoveSpaceWrapper.ScoreManager scoreManager, Move move, List<RecordedAccData> recordedAccData, string rootPath)
@@ -302,7 +380,7 @@ namespace jd_tools
             return toReturn;
         }
 
-        static float Clamp(float value, float min, float max) 
+        static float Clamp(float value, float min, float max)
         {
             float toReturn = value;
             if (value <= min) toReturn = min;
@@ -409,12 +487,14 @@ namespace jd_tools
             {
                 Settings defaultSettings = new()
                 {
-                    mapsPath = @"D:\Just Dance\just-dance-next\Just Dance Next_Data\Maps"
+                    mapsPath = @"D:\Just Dance\just-dance-next\Just Dance Next_Data\Maps",
+                    apiLink = ""
                 };
-                File.WriteAllText(settingsFilePath, JsonConvert.SerializeObject(defaultSettings));
+                File.WriteAllText(settingsFilePath, JsonConvert.SerializeObject(defaultSettings, Formatting.Indented));
             }
             Settings settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFilePath).Replace("\\", @"\"));
             mapsPath = settings.mapsPath;
+            apiLink = settings.apiLink;
         }
 
         static void GenerateComparative(ComparativeJSON comparative, int index)
