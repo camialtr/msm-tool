@@ -326,8 +326,8 @@ namespace jd_tools
                 if (move.goldMove == 1) goldCount++;
                 else moveCount++;
             }
-            float moveValue = 13333f / (5 * goldCount + moveCount);
-            float goldValue = moveValue * 5;
+            float moveValue = 13333f / (3.5f * goldCount + moveCount);
+            float goldValue = moveValue * 3.5f;
             return (goldValue, moveValue);
         }
 
