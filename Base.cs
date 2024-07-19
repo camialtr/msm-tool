@@ -1,6 +1,6 @@
 ﻿namespace jd_tools
 {
-    internal class Base
+    public class Base
     {
         public static readonly string newLine = Environment.NewLine;
         public static readonly string version = "0.2.3b";
@@ -12,6 +12,7 @@
         public static readonly string[] commands = new string[]
         {
             "  [0] Compare scoring API's from recorded data",
+            "  [1] Modifie MSM and verify both integrity"
         };
         public static readonly string[] compareCommands = new string[]
         {
@@ -38,26 +39,7 @@
         public float accY;
         public float accZ;
         public float mapTime;
-    }
-
-    public struct ScoreRequest
-    {
-        public Move move;
-        public byte[] moveFileData;
-        public List<RecordedAccData> recordedAccData;
-    }
-
-    public struct MoveFile
-    {
-        public IntPtr data;
-        public uint length;
-    }
-
-    public struct _s_MoveFile
-    {
-        public string name;
-        public byte[] data;
-    }
+    }    
 
     public struct Timeline
     {
@@ -71,30 +53,5 @@
         public string name;
         public int goldMove;
         public int coachID;
-    }
-
-    public struct ScoreResult
-    {
-        public float energy;
-        public float percentage;
-    }
-
-    public struct RecordedScore
-    {
-        public float energy;
-        public float addedScore;
-        public float totalScore;
-        public string feedback;
-    }
-
-    public enum ComparativeType
-    {
-        jdScoring, MoveSpaceWrapper
-    }
-
-    public struct ComparativeJSON
-    {
-        public ComparativeType comparativeType;
-        public List<RecordedScore> values;
-    }
+    }    
 }
