@@ -189,7 +189,7 @@ namespace jd_tools
                     recordedAccData = GetSampleDataFromTimeRange(recordedAccData, move.time, move.duration)
                 };
                 HttpClient client = new();
-                string requestContent = client.PostAsync(apiLink + "ScoreResult", new StringContent(JsonConvert.SerializeObject(scoreRequest, Formatting.Indented))).Result.Content.ReadAsStringAsync().Result;
+                string requestContent = client.PostAsync(apiLink + "Scoring", new StringContent(JsonConvert.SerializeObject(scoreRequest, Formatting.Indented))).Result.Content.ReadAsStringAsync().Result;
                 ScoreResult scoreResult = JsonConvert.DeserializeObject<ScoreResult>(requestContent);
                 if (scoreResult.energy > 0.2f)
                 {

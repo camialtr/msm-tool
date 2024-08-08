@@ -11,8 +11,7 @@
 #endif
         public static readonly string[] commands = new string[]
         {
-            "  [0] Compare scoring API's from recorded data",
-            "  [1] Modifie MSM and verify both integrity"
+            "  [0] Compare scoring API's from recorded data"
         };
         public static readonly string[] compareCommands = new string[]
         {

@@ -66,8 +66,6 @@ namespace jd_tools
                 case "0":
                     PickCompareCommand();
                     break;
-                case "1":
-                    break;
             }
         }
 
@@ -108,7 +106,7 @@ namespace jd_tools
             {
                 Settings defaultSettings = new()
                 {
-                    mapsPath = @"D:\Just Dance\just-dance-next\Just Dance Next_Data\Maps",
+                    mapsPath = @"D:\Just Dance Next\Just Dance Next_Data\Maps",
                     apiLink = ""
                 };
                 File.WriteAllText(settingsFilePath, JsonConvert.SerializeObject(defaultSettings, Formatting.Indented));
