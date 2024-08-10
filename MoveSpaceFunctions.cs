@@ -1,6 +1,5 @@
-﻿namespace jd_tools
+﻿namespace jd_tools;
+
+public class MoveSpaceFunctions
 {
-    public class MoveSpaceFunctions
-    {
-    }
 }
