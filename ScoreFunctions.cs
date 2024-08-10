@@ -99,15 +99,15 @@ namespace jd_tools
         {
             Console.Clear();
             string startPath = @$"{Environment.CurrentDirectory}\";
-            string debugPath = @"\";
-            #if (DEBUGX86 ||DEBUGX64 || DEBUGANYCPU)
-            debugPath = @"bin\Debug\net8.0\";
+            string middlePath = @"\";
+            #if DEBUGX86
+            middlePath = @"bin\x64\Debug\net8.0\";
             #endif
             string endPath = @"jd-tools.exe";
-            string finalPath = startPath + debugPath + endPath;
+            string finalPath = startPath + middlePath + endPath;
             ProcessStartInfo processStartInfo = new()
             {
-                FileName = finalPath,
+                FileName = finalPath.Replace(@"Assemblies\", ""),
                 Arguments = $"compare"
             };
             Process.Start(processStartInfo);
@@ -343,15 +343,17 @@ namespace jd_tools
         static void ProceedToSubFunction(string path)
         {
             string startPath = @$"{Environment.CurrentDirectory}\";
-            string debugPath = @"\";
-            #if (DEBUGX64 || DEBUGANYCPU)
-            debugPath = @"bin\Debug\net8.0\";
+            string middlePath = @"\";
+            #if DEBUGX64
+            middlePath = @"bin\x86\Debug\net8.0\";
+            #elif RELEASEX64
+            middlePath = @"Assemblies\";
             #endif
             string endPath = @"jd-tools.exe";
-            string finalPath = startPath + debugPath + endPath;
+            string finalPath = startPath + middlePath + endPath;
             ProcessStartInfo processStartInfo = new()
             {
-                FileName = finalPath.Replace(@"\bin\Debug\", @"\bin\x86\Debug\"),
+                FileName = finalPath,
                 Arguments = $"processrecordeddatalocal {path.Replace(" ", "|SPACE|")}"
             };
             Process.Start(processStartInfo);
@@ -359,7 +361,13 @@ namespace jd_tools
 
         public static void Compare()
         {
-            string comparativesDirectory = @$"{Environment.CurrentDirectory}\bin\Debug\net8.0\Comparatives";
+            string startPath = @$"{Environment.CurrentDirectory}\";
+            string middlePath = @"\";
+            #if DEBUGX64
+            middlePath = @"bin\x64\Debug\net8.0\";
+            #endif
+            string endPath = @"Comparatives\";
+            string comparativesDirectory = startPath + middlePath + endPath;
             if (!Directory.Exists(comparativesDirectory) || !File.Exists(Path.Combine(comparativesDirectory, "jdScoring.json")) || !File.Exists(Path.Combine(comparativesDirectory, "MoveSpaceWrapper.json")))
             {
                 console = "Error: Incorrect structure or missing files at comparatives directory!";
@@ -411,12 +419,12 @@ namespace jd_tools
         static string GetOrCreateComparativesDirectory()
         {
             string startPath = @$"{Environment.CurrentDirectory}\";
-            string debugPath = @"\";
-            #if (DEBUGX86 || DEBUGX64 || DEBUGANYCPU)
-            debugPath = @"bin\Debug\net8.0\";
+            string middlePath = @"\";
+            #if (DEBUGX86 || DEBUGX64)
+            middlePath = @"bin\x64\Debug\net8.0\";
             #endif
             string endPath = @"Comparatives\";
-            string finalPath = startPath + debugPath + endPath;
+            string finalPath = startPath + middlePath + endPath;
             string comparativesDirectory = finalPath;
             if (!Directory.Exists(comparativesDirectory)) Directory.CreateDirectory(comparativesDirectory);
             return comparativesDirectory;

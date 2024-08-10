@@ -16,7 +16,7 @@
 			"problemMatcher": "$msCompile"
 		},
 		{
-			"label": "build anycpu",
+			"label": "build x64",
 			"command": "dotnet",
 			"type": "process",
 			"args": [
@@ -25,7 +25,7 @@
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary",
 				"/p:Configuration=Debug",
-				"/p:Platform=AnyCPU"
+				"/p:Platform=x64"
 			],
 			"problemMatcher": "$msCompile"
 		},
@@ -34,7 +34,49 @@
 			"dependsOrder": "sequence",
 			"dependsOn": [
 				"build x86",
-				"build anycpu"
+				"build x64"
+			]
+		},
+		{
+			"label": "release x86",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"publish",
+				"${workspaceFolder}/jd-tools.csproj",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary",
+				"-r",
+				"win-x86",
+				"-p:PublishReadyToRun=true",
+				"/p:Configuration=Release",
+				"/p:Platform=x86"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "release x64",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"publish",
+				"${workspaceFolder}/jd-tools.csproj",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary",
+				"-r",
+				"win-x64",
+				"-p:PublishReadyToRun=true",
+				"/p:Configuration=Release",
+				"/p:Platform=x64"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "release",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"release x86",
+				"release x64"
 			]
 		}
 	]

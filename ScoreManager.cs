@@ -5,9 +5,9 @@ namespace JdScoring
     public class ScoreManager
     {
         private readonly int scoringID = -1;
-        #if (DEBUGX86 || DEBUGX64 || DEBUGANYCPU)
+        #if (DEBUGX86 || DEBUGX64)
         private const string dllPath = @"Assemblies\jdScoring.dll";
-        #elif (RELEASEX86 || RELEASEX64 || RELEASEANYCPU)
+        #elif (RELEASEX86 || RELEASEX64)
         private const string dllPath = @"jdScoring.dll";
         #endif
 
