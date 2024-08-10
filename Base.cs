@@ -6,19 +6,19 @@
         public static readonly string version = "0.2.5b";
         #if (DEBUGX86 || RELEASEX86)
         public static readonly string architecture = "[x86]";
-        #elif (DEBUGX64 || RELEASEX64 || DEBUGANYCPU || RELEASEANYCPU)
+        #elif (DEBUGX64 || RELEASEX64)
         public static readonly string architecture = "[x64]";
         #endif
-        public static readonly string[] commands = new string[]
-        {
+        public static readonly string[] commands =
+        [
             "  [0] Compare scoring API's from recorded data"
-        };
-        public static readonly string[] compareCommands = new string[]
-        {
+        ];
+        public static readonly string[] compareCommands =
+        [
             "  [0] Back",
             "  [1] Compare scoring API's locally",
             "  [2] Compare scoring API's online (Requires API link)",
-        };
+        ];
         public static readonly string header = "Just Dance Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
         public static string console = "...";
         public static string mapsPath = "";

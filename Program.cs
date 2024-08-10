@@ -26,7 +26,7 @@ namespace jd_tools
                     break;
             }
         }
-        #elif (DEBUGX64 || RELEASEX64 || DEBUGANYCPU || RELEASEANYCPU)
+        #elif (DEBUGX64 || RELEASEX64)
         static void Main(string[] args)
         {
             HandleBoot();

@@ -112,7 +112,7 @@ namespace jd_tools
             };
             Process.Start(processStartInfo);
         }
-        #elif (DEBUGX64 || RELEASEX64 || DEBUGANYCPU || RELEASEANYCPU)
+        #elif (DEBUGX64 || RELEASEX64)
         public static void ProcessRecordedDataLocal()
         {
             WriteStaticHeader(true, $"Select a file...", 0);
