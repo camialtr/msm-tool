@@ -70,16 +70,13 @@ internal unsafe class Program : Base
     #endif
     static void HandleBoot()
     {
-        string startPath = @$"{Environment.CurrentDirectory}\";
         string middlePath = @"\";
         #if DEBUGX64
         middlePath = @"bin\x64\Debug\net8.0\";
         #elif DEBUGX86
         middlePath = @"bin\x86\Debug\net8.0\";
         #endif
-        string endPath = @"settings.json";
-        string finalPath = startPath + middlePath + endPath;
-        string settingsFilePath = finalPath.Replace(@"Assemblies\", "");
+        string settingsFilePath = BuildPath(middlePath, @"settings.json").Replace(@"Assemblies\", "");
         if (!File.Exists(settingsFilePath))
         {
             Settings defaultSettings = new()

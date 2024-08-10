@@ -16,6 +16,8 @@ public class Base
     public static readonly string header = "Just Dance Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
     public static string console = "...";
     public static string mapsPath = "";
+
+    public static string BuildPath(string middlePath, string endPath) => @$"{Environment.CurrentDirectory}\" + middlePath + endPath;
 }
 public struct Settings
 {

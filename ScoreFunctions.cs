@@ -63,51 +63,32 @@ public unsafe class ScoreFunctions : Base
     {
         if (scoreResult.moveNum == moveID)
         {
-            string feedback = string.Empty;
-            switch (scoreResult.rating)
-            {
-                case 0:
-                    if (scoreResult.isGoldMove)
-                    {
-                        feedback = "MISSYEAH";
-                    }
-                    else
-                    {
-                        feedback = "MISS";
-                    }
-                    break;
-                case 1:
-                    feedback = "OK";
-                    break;
-                case 2:
-                    feedback = "GOOD";
-                    break;
-                case 3:
-                    feedback = "PERFECT";
-                    break;
-                case 4:
-                    feedback = "YEAH";
-                    break;
-            }
+            string feedback = GetFeedback(scoreResult);
             recordedValues.Add(new() { energy = 0f, addedScore = scoreResult.totalScore - lastScore, totalScore = scoreResult.totalScore, feedback = feedback });
             moveID++; lastScore = scoreResult.totalScore;
         }
         return (moveID, lastScore);
     }
+
+    private static string GetFeedback(JdScoring.ScoreResult scoreResult) => scoreResult.rating switch
+    {
+        0 => scoreResult.isGoldMove ? "MISSYEAH" : "MISS",
+        1 => "OK",
+        2 => "GOOD",
+        3 => "PERFECT",
+        4 => "YEAH"
+    };
     
     static void ProceedToMainFunction()
     {
         Console.Clear();
-        string startPath = @$"{Environment.CurrentDirectory}\";
         string middlePath = @"\";
         #if DEBUGX86
         middlePath = @"bin\x64\Debug\net8.0\";
         #endif
-        string endPath = @"jd-tools.exe";
-        string finalPath = startPath + middlePath + endPath;
         ProcessStartInfo processStartInfo = new()
         {
-            FileName = finalPath.Replace(@"Assemblies\", ""),
+            FileName = BuildPath(middlePath, @"jd-tools.exe").Replace(@"Assemblies\", ""),
             Arguments = $"compare"
         };
         Process.Start(processStartInfo);
@@ -147,14 +128,9 @@ public unsafe class ScoreFunctions : Base
                 recordedValues.Add(new() { energy = scoreResult.energy, addedScore = score, totalScore = totalScore, feedback = feedback });
                 continue;
             }
-            if (move.goldMove == 1)
-            {
-                recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = "MISSYEAH" });
-            }
-            else
-            {
-                recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = "MISS" });
-            }
+            string missFeedback = "MISS";
+            if (move.goldMove == 1) missFeedback = "MISSYEAH";
+            recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = missFeedback });
         }
         scoreManager.Dispose();
         ComparativeJSON json = new()
@@ -215,50 +191,25 @@ public unsafe class ScoreFunctions : Base
         return file;
     }
 
-    static List<RecordedAccData> GetSampleDataFromTimeRange(List<RecordedAccData> recordedAccData, float time, float duration)
-    {
-        List<RecordedAccData> toReturn = new();
-        foreach (RecordedAccData accData in recordedAccData)
-        {
-            if (accData.mapTime >= time && accData.mapTime <= (time + duration))
-            {
-                toReturn.Add(accData);
-            }
-        }
-        return toReturn;
-    }
+    static List<RecordedAccData> GetSampleDataFromTimeRange(List<RecordedAccData> recordedAccData, float time, float duration) => recordedAccData.Where(accData => accData.mapTime >= time && accData.mapTime <= time + duration).ToList();
 
-    static float Clamp(float value, float min, float max)
-    {
-        float toReturn = value;
-        if (value <= min) toReturn = min;
-        if (value >= max) toReturn = max;
-        return toReturn;
-    }
+    static float Clamp(float value, float min, float max) => Math.Max(min, Math.Min(max, value));
 
     static float GetScore(Move move, float moveScoreValue, float goldScoreValue, float percentage)
     {
-        float score = 0f;
-        if (move.goldMove == 1 && percentage > 70.0f)
+        if (percentage <= 25.0f)
         {
-            score = Single.Lerp(0f, goldScoreValue, percentage / 100);
+            return 0f;
         }
-        else if (percentage > 25.0f)
-        {
-            score = Single.Lerp(0f, moveScoreValue, percentage / 100);
-        }
-        return score;
+        float scoreValue = (move.goldMove == 1 && percentage > 70.0f) ? goldScoreValue : moveScoreValue;
+        return Single.Lerp(0f, scoreValue, percentage / 100);
     }
 
     static string GetFeedback(Move move, float percentage)
     {
-        if (move.goldMove == 1 && percentage > 70.0f)
+        if (move.goldMove == 1)
         {
-            return "YEAH";
-        }
-        else if (move.goldMove == 1 && percentage < 70.0f)
-        {
-            return "MISSYEAH";
+            return percentage > 70.0f ? "YEAH" : "MISSYEAH";
         }
         if (percentage < 25.0f)
         {
@@ -276,26 +227,20 @@ public unsafe class ScoreFunctions : Base
         {
             return "SUPER";
         }
-        else
-        {
-            return "PERFECT";
-        }
+        return "PERFECT";
     }
 
     static void ProceedToSubFunction(string path)
     {
-        string startPath = @$"{Environment.CurrentDirectory}\";
         string middlePath = @"\";
         #if DEBUGX64
         middlePath = @"bin\x86\Debug\net8.0\";
         #elif RELEASEX64
         middlePath = @"Assemblies\";
         #endif
-        string endPath = @"jd-tools.exe";
-        string finalPath = startPath + middlePath + endPath;
         ProcessStartInfo processStartInfo = new()
         {
-            FileName = finalPath,
+            FileName = BuildPath(middlePath, @"jd-tools.exe"),
             Arguments = $"processrecordeddatalocal {path.Replace(" ", "|SPACE|")}"
         };
         Process.Start(processStartInfo);
@@ -303,13 +248,11 @@ public unsafe class ScoreFunctions : Base
 
     public static void Compare()
     {
-        string startPath = @$"{Environment.CurrentDirectory}\";
         string middlePath = @"\";
         #if DEBUGX64
         middlePath = @"bin\x64\Debug\net8.0\";
         #endif
-        string endPath = @"Comparatives\";
-        string comparativesDirectory = startPath + middlePath + endPath;
+        string comparativesDirectory = BuildPath(middlePath, @"Comparatives\");
         if (!Directory.Exists(comparativesDirectory) || !File.Exists(Path.Combine(comparativesDirectory, "jdScoring.json")) || !File.Exists(Path.Combine(comparativesDirectory, "MoveSpaceWrapper.json")))
         {
             console = "Error: Incorrect structure or missing files at comparatives directory!";
@@ -360,14 +303,11 @@ public unsafe class ScoreFunctions : Base
 
     static string GetOrCreateComparativesDirectory()
     {
-        string startPath = @$"{Environment.CurrentDirectory}\";
         string middlePath = @"\";
         #if (DEBUGX86 || DEBUGX64)
         middlePath = @"bin\x64\Debug\net8.0\";
         #endif
-        string endPath = @"Comparatives\";
-        string finalPath = startPath + middlePath + endPath;
-        string comparativesDirectory = finalPath;
+        string comparativesDirectory = BuildPath(middlePath, @"Comparatives\");
         if (!Directory.Exists(comparativesDirectory)) Directory.CreateDirectory(comparativesDirectory);
         return comparativesDirectory;
     }
