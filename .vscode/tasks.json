@@ -1,0 +1,41 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build x86",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/jd-tools.csproj",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary",
+				"/p:Configuration=Debug",
+				"/p:Platform=x86"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "build anycpu",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/jd-tools.csproj",
+				"/property:GenerateFullPaths=true",
+				"/consoleloggerparameters:NoSummary",
+				"/p:Configuration=Debug",
+				"/p:Platform=AnyCPU"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"label": "build",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"build x86",
+				"build anycpu"
+			]
+		}
+	]
+}

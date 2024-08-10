@@ -3,12 +3,12 @@
     public class Base
     {
         public static readonly string newLine = Environment.NewLine;
-        public static readonly string version = "0.2.3b";
-#if (DEBUGX86 || RELEASEX86)
+        public static readonly string version = "0.2.5b";
+        #if (DEBUGX86 || RELEASEX86)
         public static readonly string architecture = "[x86]";
-#elif (DEBUGX64 || RELEASEX64)
+        #elif (DEBUGX64 || RELEASEX64 || DEBUGANYCPU || RELEASEANYCPU)
         public static readonly string architecture = "[x64]";
-#endif
+        #endif
         public static readonly string[] commands = new string[]
         {
             "  [0] Compare scoring API's from recorded data"

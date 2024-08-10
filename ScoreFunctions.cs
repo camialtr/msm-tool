@@ -10,7 +10,7 @@ namespace jd_tools
 {
     public unsafe class ScoreFunctions : Base
     {
-#if (DEBUGX86 || RELEASEX86)
+        #if (DEBUGX86 || RELEASEX86)
         public static void ProcessRecordedDataLocal(string recordedAccDataPath)
         {
             List<RecordedAccData> recordedData = JsonConvert.DeserializeObject<List<RecordedAccData>>(File.ReadAllText(recordedAccDataPath));
@@ -98,14 +98,21 @@ namespace jd_tools
         static void ProceedToMainFunction()
         {
             Console.Clear();
+            string startPath = @$"{Environment.CurrentDirectory}\";
+            string debugPath = @"\";
+            #if (DEBUGX86 ||DEBUGX64 || DEBUGANYCPU)
+            debugPath = @"bin\Debug\net8.0\";
+            #endif
+            string endPath = @"jd-tools.exe";
+            string finalPath = startPath + debugPath + endPath;
             ProcessStartInfo processStartInfo = new()
             {
-                FileName = Path.Combine(Environment.CurrentDirectory, "jd-tools.exe").Replace("x86", "x64"),
+                FileName = finalPath,
                 Arguments = $"compare"
             };
             Process.Start(processStartInfo);
         }
-#elif (DEBUGX64 || RELEASEX64)
+        #elif (DEBUGX64 || RELEASEX64 || DEBUGANYCPU || RELEASEANYCPU)
         public static void ProcessRecordedDataLocal()
         {
             WriteStaticHeader(true, $"Select a file...", 0);
@@ -335,20 +342,24 @@ namespace jd_tools
 
         static void ProceedToSubFunction(string path)
         {
+            string startPath = @$"{Environment.CurrentDirectory}\";
+            string debugPath = @"\";
+            #if (DEBUGX64 || DEBUGANYCPU)
+            debugPath = @"bin\Debug\net8.0\";
+            #endif
+            string endPath = @"jd-tools.exe";
+            string finalPath = startPath + debugPath + endPath;
             ProcessStartInfo processStartInfo = new()
             {
-                FileName = Path.Combine(Environment.CurrentDirectory, "Assemblies", "jd-tools.exe").Replace("x64", "x86"),
+                FileName = finalPath.Replace(@"\bin\Debug\", @"\bin\x86\Debug\"),
                 Arguments = $"processrecordeddatalocal {path.Replace(" ", "|SPACE|")}"
             };
-#if DEBUGX64
-            processStartInfo.FileName = processStartInfo.FileName.Replace(@"Assemblies\", "");
-#endif
             Process.Start(processStartInfo);
         }
 
         public static void Compare()
         {
-            string comparativesDirectory = Path.Combine(Environment.CurrentDirectory, "Comparatives");
+            string comparativesDirectory = @$"{Environment.CurrentDirectory}\bin\Debug\net8.0\Comparatives";
             if (!Directory.Exists(comparativesDirectory) || !File.Exists(Path.Combine(comparativesDirectory, "jdScoring.json")) || !File.Exists(Path.Combine(comparativesDirectory, "MoveSpaceWrapper.json")))
             {
                 console = "Error: Incorrect structure or missing files at comparatives directory!";
@@ -378,7 +389,7 @@ namespace jd_tools
             console = "...";
             Program.InitialLogic();
         }
-#endif
+        #endif
         static void GenerateComparative(ComparativeJSON comparative, int index)
         {
             if (comparative.comparativeType == ComparativeType.MoveSpaceWrapper) Console.Write(comparative.values[index].energy.ToString("n2").PadRight(12));
@@ -399,7 +410,14 @@ namespace jd_tools
 
         static string GetOrCreateComparativesDirectory()
         {
-            string comparativesDirectory = Path.Combine(Environment.CurrentDirectory, "Comparatives").Replace(@"Assemblies\", "").Replace("x86", "x64");
+            string startPath = @$"{Environment.CurrentDirectory}\";
+            string debugPath = @"\";
+            #if (DEBUGX86 || DEBUGX64 || DEBUGANYCPU)
+            debugPath = @"bin\Debug\net8.0\";
+            #endif
+            string endPath = @"Comparatives\";
+            string finalPath = startPath + debugPath + endPath;
+            string comparativesDirectory = finalPath;
             if (!Directory.Exists(comparativesDirectory)) Directory.CreateDirectory(comparativesDirectory);
             return comparativesDirectory;
         }

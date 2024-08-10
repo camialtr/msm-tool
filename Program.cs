@@ -5,7 +5,7 @@ namespace jd_tools
 {
     internal unsafe class Program : Base
     {
-#if (DEBUGX86 || RELEASEX86)
+        #if (DEBUGX86 || RELEASEX86)
         static void Main(string[] args)
         {
             HandleBoot();
@@ -26,7 +26,7 @@ namespace jd_tools
                     break;
             }
         }
-#elif (DEBUGX64 || RELEASEX64)
+        #elif (DEBUGX64 || RELEASEX64 || DEBUGANYCPU || RELEASEANYCPU)
         static void Main(string[] args)
         {
             HandleBoot();
@@ -98,7 +98,7 @@ namespace jd_tools
                     break;
             } 
         }
-#endif
+        #endif
         static void HandleBoot()
         {
             string settingsFilePath = Environment.CurrentDirectory.Replace(@"\Assemblies", "") + @"\settings.json";

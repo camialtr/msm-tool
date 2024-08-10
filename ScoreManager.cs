@@ -5,11 +5,11 @@ namespace JdScoring
     public class ScoreManager
     {
         private readonly int scoringID = -1;
-#if (DEBUGX86 || DEBUGX64)
+        #if (DEBUGX86 || DEBUGX64 || DEBUGANYCPU)
         private const string dllPath = @"Assemblies\jdScoring.dll";
-#elif (RELEASEX86 || RELEASEX64)
+        #elif (RELEASEX86 || RELEASEX64 || RELEASEANYCPU)
         private const string dllPath = @"jdScoring.dll";
-#endif
+        #endif
 
         [DllImport($"{dllPath}")]
         private static extern int init();
