@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Settings generated on release process
+settings.json
+
 # User-specific files
 *.rsuser
 *.suo
