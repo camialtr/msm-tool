@@ -1,4 +1,5 @@
-﻿namespace jd_tools;
+﻿#pragma warning disable IDE1006
+namespace jd_tools;
 
 public class Base
 {
@@ -19,27 +20,27 @@ public class Base
 
     public static string BuildPath(string middlePath, string endPath) => @$"{Environment.CurrentDirectory}\" + middlePath + endPath;
 }
-public struct Settings
+public class Settings
 {
-    public string mapsPath;
+    public string? mapsPath { get; set; }
 }    
-public struct RecordedAccData
+public class RecordedAccData
 {
-    public int coachID;
-    public float accX;
-    public float accY;
-    public float accZ;
-    public float mapTime;
+    public int coachID { get; set; }
+    public float accX { get; set; }
+    public float accY { get; set; }
+    public float accZ { get; set; }
+    public float mapTime { get; set; }
 }    
-public struct Timeline
+public class Timeline
 {
-    public List<Move> moves;
+    public List<Move>? moves { get; set; }
 }
-public struct Move
+public class Move
 {
-    public float time;
-    public float duration;
-    public string name;
-    public int goldMove;
-    public int coachID;
+    public float time { get; set; }
+    public float duration { get; set; }
+    public string? name { get; set; }
+    public int goldMove { get; set; }
+    public int coachID { get; set; }
 }

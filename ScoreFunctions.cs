@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
 using System.Diagnostics;
 using NativeFileDialogSharp;
 using System.Runtime.InteropServices;
@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 #pragma warning disable CS8600
 #pragma warning disable CS8602
 #pragma warning disable CS8604
+#pragma warning disable IDE1006
 namespace jd_tools;
 
 public unsafe class ScoreFunctions : Base
@@ -13,7 +14,7 @@ public unsafe class ScoreFunctions : Base
     #if (DEBUGX86 || RELEASEX86)
     public static void ProcessRecordedDataLocal(string recordedAccDataPath)
     {
-        List<RecordedAccData> recordedData = JsonConvert.DeserializeObject<List<RecordedAccData>>(File.ReadAllText(recordedAccDataPath));
+        List<RecordedAccData> recordedData = JsonSerializer.Deserialize<List<RecordedAccData>>(File.ReadAllText(recordedAccDataPath));
         JdScoring.ScoreManager scoreManager = InitializeScoring(recordedAccDataPath.Replace($@"\{Path.GetFileName(recordedAccDataPath)}", "").Replace(@"accdata", ""), recordedData[0].coachID - 1);
         List<RecordedScore> recordedValues = new();
         int moveID = 0; float lastScore = 0f;
@@ -30,14 +31,14 @@ public unsafe class ScoreFunctions : Base
             comparativeType = ComparativeType.jdScoring,
             values = recordedValues
         };
-        File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(), "jdScoring.json"), JsonConvert.SerializeObject(json, Formatting.Indented));
+        File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(), "jdScoring.json"), JsonSerializer.Serialize(json));
         ProceedToMainFunction();
     }
 
     static JdScoring.ScoreManager InitializeScoring(string rootPath, int coachID)
     {
         JdScoring.ScoreManager scoreManager = new();
-        Timeline timeline = JsonConvert.DeserializeObject<Timeline>(File.ReadAllText(rootPath + "timeline.json"));
+        Timeline timeline = JsonSerializer.Deserialize<Timeline>(File.ReadAllText(rootPath + "timeline.json"));
         List<_s_MoveFile> moveFiles = new();
         List<Move> moves = timeline.moves.FindAll(x => x.coachID == coachID);
         foreach (string file in Directory.GetFiles(Path.Combine(rootPath, "moves")))
@@ -102,7 +103,7 @@ public unsafe class ScoreFunctions : Base
         List<RecordedAccData> recordedAccData = new();
         try
         {
-            recordedAccData = JsonConvert.DeserializeObject<List<RecordedAccData>>(File.ReadAllText(dialogResult.Path));
+            recordedAccData = JsonSerializer.Deserialize<List<RecordedAccData>>(File.ReadAllText(dialogResult.Path));
         }
         catch
         {
@@ -110,7 +111,7 @@ public unsafe class ScoreFunctions : Base
             Program.InitialLogic();
         }
         string rootPath = dialogResult.Path.Replace($@"\{Path.GetFileName(dialogResult.Path)}", "").Replace(@"accdata", "");
-        Timeline timeline = JsonConvert.DeserializeObject<Timeline>(File.ReadAllText(rootPath + "timeline.json"));
+        Timeline timeline = JsonSerializer.Deserialize<Timeline>(File.ReadAllText(rootPath + "timeline.json"));
         List<Move> moves = timeline.moves.FindAll(x => x.coachID == recordedAccData[0].coachID - 1);
         List<RecordedScore> recordedValues = new();
         float totalScore = 0f;
@@ -128,9 +129,7 @@ public unsafe class ScoreFunctions : Base
                 recordedValues.Add(new() { energy = scoreResult.energy, addedScore = score, totalScore = totalScore, feedback = feedback });
                 continue;
             }
-            string missFeedback = "MISS";
-            if (move.goldMove == 1) missFeedback = "MISSYEAH";
-            recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = missFeedback });
+            recordedValues.Add(new() { energy = scoreResult.energy, addedScore = 0f, totalScore = totalScore, feedback = move.goldMove == 1 ? "MISSYEAH" : "MISS" });
         }
         scoreManager.Dispose();
         ComparativeJSON json = new()
@@ -138,7 +137,7 @@ public unsafe class ScoreFunctions : Base
             comparativeType = ComparativeType.MoveSpaceWrapper,
             values = recordedValues
         };
-        File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(), "MoveSpaceWrapper.json"), JsonConvert.SerializeObject(json, Formatting.Indented));
+        File.WriteAllText(Path.Combine(GetOrCreateComparativesDirectory(), "MoveSpaceWrapper.json"), JsonSerializer.Serialize(json));
         ProceedToSubFunction(dialogResult.Path);
     }
 
@@ -205,30 +204,16 @@ public unsafe class ScoreFunctions : Base
         return Single.Lerp(0f, scoreValue, percentage / 100);
     }
 
-    static string GetFeedback(Move move, float percentage)
+    static string GetFeedback(Move move, float percentage) => (move.goldMove, percentage) switch 
     {
-        if (move.goldMove == 1)
-        {
-            return percentage > 70.0f ? "YEAH" : "MISSYEAH";
-        }
-        if (percentage < 25.0f)
-        {
-            return "MISS";
-        }
-        else if (percentage < 50.0f)
-        {
-            return "OK";
-        }
-        else if (percentage < 70.0f)
-        {
-            return "GOOD";
-        }
-        else if (percentage < 80.0f)
-        {
-            return "SUPER";
-        }
-        return "PERFECT";
-    }
+        (1, > 70.0f) => "YEAH",
+        (1, < 70.0f) => "MISSYEAH",
+        (_, < 25.0f) => "MISS",
+        (_, < 50.0f) => "OK",
+        (_, < 70.0f) => "GOOD",
+        (_, < 80.0f) => "SUPER",
+        _ => "PERFECT"
+    };
 
     static void ProceedToSubFunction(string path)
     {
@@ -259,8 +244,8 @@ public unsafe class ScoreFunctions : Base
             Directory.Delete(comparativesDirectory, true);
             Program.InitialLogic();
         }
-        ComparativeJSON jdScoring = JsonConvert.DeserializeObject<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "jdScoring.json")));
-        ComparativeJSON moveSpaceWrapper = JsonConvert.DeserializeObject<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "MoveSpaceWrapper.json")));
+        ComparativeJSON jdScoring = JsonSerializer.Deserialize<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "jdScoring.json")));
+        ComparativeJSON moveSpaceWrapper = JsonSerializer.Deserialize<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "MoveSpaceWrapper.json")));
         WriteStaticHeader(false, $"Generated comparative:{newLine}{newLine}", 0);
         Console.Write("jdScoring".PadRight(49) + "MoveSpaceWrapper");
         Console.Write($"{newLine}" + new string('=', 98));
@@ -313,30 +298,30 @@ public unsafe class ScoreFunctions : Base
     }
 }
 
-public struct ScoreResult
+public class ScoreResult
 {
-    public float energy;
-    public float percentage;
+    public float energy { get; set; }
+    public float percentage { get; set; }
 }
 
-public struct MoveFile
+public class MoveFile
 {
-    public IntPtr data;
-    public uint length;
+    public IntPtr data { get; set; }
+    public uint length { get; set; }
 }
 
-public struct _s_MoveFile
+public class _s_MoveFile
 {
-    public string name;
-    public byte[] data;
+    public string? name { get; set; }
+    public byte[]? data { get; set; }
 }
 
-public struct RecordedScore
+public class RecordedScore
 {
-    public float energy;
-    public float addedScore;
-    public float totalScore;
-    public string feedback;
+    public float energy { get; set; }
+    public float addedScore { get; set; }
+    public float totalScore { get; set; }
+    public string? feedback { get; set; }
 }
 
 public enum ComparativeType
@@ -344,8 +329,8 @@ public enum ComparativeType
     jdScoring, MoveSpaceWrapper
 }
 
-public struct ComparativeJSON
+public class ComparativeJSON
 {
-    public ComparativeType comparativeType;
-    public List<RecordedScore> values;
+    public ComparativeType comparativeType { get; set; }
+    public List<RecordedScore>? values { get; set; }
 }

@@ -1,5 +1,7 @@
 ﻿using System.Text;
 
+#pragma warning disable CS8602
+#pragma warning disable IDE1006
 namespace jd_tools;
 
 public class MoveSpaceManager
@@ -63,22 +65,22 @@ public class MoveSpaceManager
         return data;
     }
 
-    public struct MoveSpace
+    public class MoveSpace
     {
-        public int version;
-        public string moveName;
-        public string mapName;
-        public string measureSet;
-        public float moveDuration;
-        public float moveAccurateLowThreshold;
-        public float moveAccurateHighThreshold;
-        public float autoCorrelationThreshold;
-        public float moveDirectionImpactFactor;
-        public long moveMeasureBitfield;
-        public int measureValue;
-        public int measureCount;
-        public int energyMeasureCount;
-        public int moveCustomizationFlags;
-        public List<float> measures;
+        public int version { get; set; }
+        public string? moveName { get; set; }
+        public string? mapName { get; set; }
+        public string? measureSet { get; set; }
+        public float moveDuration { get; set; }
+        public float moveAccurateLowThreshold { get; set; }
+        public float moveAccurateHighThreshold { get; set; }
+        public float autoCorrelationThreshold { get; set; }
+        public float moveDirectionImpactFactor { get; set; }
+        public long moveMeasureBitfield { get; set; }
+        public int measureValue { get; set; }
+        public int measureCount { get; set; }
+        public int energyMeasureCount { get; set; }
+        public int moveCustomizationFlags { get; set; }
+        public List<float>? measures { get; set; }
     }
 }

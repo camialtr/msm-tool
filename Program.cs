@@ -1,5 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
 
+#pragma warning disable CS8600
+#pragma warning disable CS8601
+#pragma warning disable CS8602
 #pragma warning disable IDE0071
 namespace jd_tools;
 
@@ -45,6 +48,7 @@ internal unsafe class Program : Base
                 break;
         }
     }
+    
     public static void InitialLogic()
     {
         Console.Clear();
@@ -83,9 +87,9 @@ internal unsafe class Program : Base
             {
                 mapsPath = @"D:\Just Dance Next\Just Dance Next_Data\Maps"
             };
-            File.WriteAllText(settingsFilePath, JsonConvert.SerializeObject(defaultSettings, Formatting.Indented));
+            File.WriteAllText(settingsFilePath, JsonSerializer.Serialize(defaultSettings));
         }
-        Settings settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(settingsFilePath).Replace("\\", @"\"));
+        Settings settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(settingsFilePath).Replace("\\", @"\"));
         mapsPath = settings.mapsPath;
     }        
 }

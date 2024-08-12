@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -7,10 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Platforms>x86;x64</Platforms>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    
-  </PropertyGroup>
- 
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>    
+  </PropertyGroup> 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DefineConstants>TRACE;DEBUGX86</DefineConstants>
   </PropertyGroup>
@@ -45,12 +42,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NativeFileDialogSharp" Version="0.5.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MoveSpaceWrapper">
       <HintPath>Assemblies\MoveSpaceWrapper.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>
