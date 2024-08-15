@@ -50,7 +50,7 @@ public class MoveSpaceManager
             measureCount = BitConverter.ToInt32(ReverseEndianess(reader.ReadBytes(4)), 0),
             energyMeasureCount = BitConverter.ToInt32(ReverseEndianess(reader.ReadBytes(4)), 0),
             moveCustomizationFlags = BitConverter.ToInt32(ReverseEndianess(reader.ReadBytes(4)), 0),
-            measures = new()
+            measures = []
         };
         while (reader.BaseStream.Position < reader.BaseStream.Length)
         {

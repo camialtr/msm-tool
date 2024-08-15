@@ -85,7 +85,7 @@ internal unsafe class Program : Base
         {
             Settings defaultSettings = new()
             {
-                mapsPath = @"D:\Just Dance Next\Just Dance Next_Data\Maps"
+                mapsPath = @"C:\Games\Just Dance Next\Just Dance Next_Data\Maps"
             };
             File.WriteAllText(settingsFilePath, JsonSerializer.Serialize(defaultSettings));
         }

@@ -196,10 +196,7 @@ public unsafe class ScoreFunctions : Base
 
     static float GetScore(Move move, float moveScoreValue, float goldScoreValue, float percentage)
     {
-        if (percentage <= 25.0f)
-        {
-            return 0f;
-        }
+        if (percentage <= 25.0f) return 0f;
         float scoreValue = (move.goldMove == 1 && percentage > 70.0f) ? goldScoreValue : moveScoreValue;
         return Single.Lerp(0f, scoreValue, percentage / 100);
     }
@@ -247,20 +244,20 @@ public unsafe class ScoreFunctions : Base
         ComparativeJSON jdScoring = JsonSerializer.Deserialize<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "jdScoring.json")));
         ComparativeJSON moveSpaceWrapper = JsonSerializer.Deserialize<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "MoveSpaceWrapper.json")));
         WriteStaticHeader(false, $"Generated comparative:{newLine}{newLine}", 0);
-        Console.Write("jdScoring".PadRight(49) + "MoveSpaceWrapper");
-        Console.Write($"{newLine}" + new string('=', 98));
-        Console.Write($"{newLine}"); Console.Write("Energy".PadRight(12) + "Score".PadRight(12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|");
-        Console.Write("Energy".PadRight(12) + "Score".PadRight(12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|");
+        Console.WriteLine("jdScoring".PadRight(49) + "MoveSpaceWrapper");
+        Console.WriteLine(new string('=', 98));
+        Console.WriteLine("Energy".PadRight(12) + "Score".PadRight(12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|" + "Energy".PadRight(12) + "Score".PadRight (12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|");
         for (int i = 0; i < jdScoring.values.Count; i++)
         {
-            Console.Write($"{newLine}");
+            if (i > 0) Console.WriteLine();
             GenerateComparative(jdScoring, i);
             GenerateComparative(moveSpaceWrapper, i);
         }
         Directory.Delete(comparativesDirectory, true);
-        Console.Write($"{newLine}" + new string('=', 98));
-        Console.Write($"{newLine}Press any key to exit...");
-        Console.Write($"{newLine}" + new string('=', 98));
+        Console.WriteLine();
+        Console.WriteLine(new string('=', 98));
+        Console.WriteLine("Press any key to exit...");
+        Console.WriteLine(new string('=', 98));
         Console.CursorVisible = false;
         Console.ReadKey();
         Console.CursorVisible = true;
@@ -270,9 +267,15 @@ public unsafe class ScoreFunctions : Base
     #endif
     static void GenerateComparative(ComparativeJSON comparative, int index)
     {
-        if (comparative.comparativeType == ComparativeType.MoveSpaceWrapper) Console.Write(comparative.values[index].energy.ToString("n2").PadRight(12));
-        else Console.Write("NA".PadRight(12));
-        Console.Write(comparative.values[index].addedScore.ToString("n2").PadRight(12) + comparative.values[index].totalScore.ToString("n2").PadRight(12) + comparative.values[index].feedback.PadRight(12) + "|");
+        string energyOutput = "NA".PadRight(12);    
+        if (comparative.comparativeType == ComparativeType.MoveSpaceWrapper)
+        {
+            energyOutput = comparative.values[index].energy.ToString("n2").PadRight(12);
+        }
+        string addedScoreOutput = comparative.values[index].addedScore.ToString("n2").PadRight(12);
+        string totalScoreOutput = comparative.values[index].totalScore.ToString("n2").PadRight(12);
+        string feedbackOutput = comparative.values[index].feedback.PadRight(12);
+        Console.Write($"{energyOutput}{addedScoreOutput}{totalScoreOutput}{feedbackOutput}|");
     }
 
     static void WriteStaticHeader(bool sleep, string log, int commandID)
