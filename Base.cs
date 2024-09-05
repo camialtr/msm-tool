@@ -4,7 +4,7 @@ namespace jd_tools;
 public class Base
 {
     public static readonly string newLine = Environment.NewLine;
-    public static readonly string version = "0.2.5b";
+    public static readonly string version = "0.5.0a";
     #if (DEBUGX86 || RELEASEX86)
     public static readonly string architecture = "[x86]";
     #elif (DEBUGX64 || RELEASEX64)
@@ -12,13 +12,25 @@ public class Base
     #endif
     public static readonly string[] commands =
     [
-        "  [0] Compare scoring API's from recorded data"
+        "  [0] Compare scoring API's from recorded data",
+        "  [1] Generate MSM's from recorded data",
     ];
     public static readonly string header = "Just Dance Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
     public static string console = "...";
     public static string mapsPath = "";
 
     public static string BuildPath(string middlePath, string endPath) => @$"{Environment.CurrentDirectory}\" + middlePath + endPath;
+
+    public static void WriteStaticHeader(bool sleep, string log, int commandID)
+    {
+        Console.Clear();
+        Console.WriteLine(header);
+        Console.WriteLine($"{commands[commandID].Replace($"[{commandID}] ", "")}{newLine}");
+        Console.Write($"[Console]");
+        console = log;
+        Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+        if (sleep) Thread.Sleep(500);
+    }
 }
 public class Settings
 {

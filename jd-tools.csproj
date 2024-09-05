@@ -42,10 +42,38 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NativeFileDialogSharp" Version="0.5.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MoveSpaceWrapper">
       <HintPath>Assemblies\MoveSpaceWrapper.dll</HintPath>
+    </Reference>
+    <Reference Include="MoveSpaceTool">
+      <HintPath>Assemblies\MoveSpaceTool.dll</HintPath>
+    </Reference>
+    <Reference Include="JD.DTO">
+      <HintPath>Assemblies\JD.DTO.dll</HintPath>
+    </Reference>
+    <Reference Include="MSPClassifier">
+      <HintPath>Assemblies\MSPClassifier.dll</HintPath>
+    </Reference>
+    <Reference Include="MSPMatrixVector">
+      <HintPath>Assemblies\MSPMatrixVector.dll</HintPath>
+    </Reference>
+    <Reference Include="MSPStats">
+      <HintPath>Assemblies\MSPStats.dll</HintPath>
+    </Reference>
+    <Reference Include="TmlDtapeMoveExtractor">
+      <HintPath>Assemblies\TmlDtapeMoveExtractor.dll</HintPath>
+    </Reference>
+    <Reference Include="RecMoveExtractor">
+      <HintPath>Assemblies\RecMoveExtractor.dll</HintPath>
+    </Reference>
+    <Reference Include="RecTool">
+      <HintPath>Assemblies\RecTool.dll</HintPath>
+    </Reference>
+    <Reference Include="MoveReaderInterface">
+      <HintPath>Assemblies\MoveReaderInterface.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

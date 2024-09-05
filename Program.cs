@@ -69,6 +69,9 @@ internal unsafe class Program : Base
             case "0":
                 ScoreFunctions.ProcessRecordedDataLocal();
                 break;
+            case "1":
+                MoveSpaceFunctions.GenerateMSMsFromRecordedData();
+                break;
         }
     }
     #endif

@@ -54,6 +54,21 @@ public unsafe class ScoreFunctions : Base
         {
             moveIndex++;
             _s_MoveFile file = moveFiles.Find(x => x.name == move.name);
+            if (file == null) 
+            {
+                Console.WriteLine("File is Null");
+                Console.ReadKey();
+            }
+            if (file.data == null) 
+            {
+                Console.WriteLine("Data is Null");
+                Console.ReadKey();
+            }
+            if (file.name == null) 
+            {
+                Console.WriteLine("Name is Null");
+                Console.ReadKey();
+            }           
             scoreManager.LoadClassifier(move.name, file.data);
             scoreManager.LoadMove(move.name, (int)(move.time * 1000), (int)(move.duration * 1000), Convert.ToBoolean(move.goldMove), moveIndex.Equals(moves.Count));
         }
@@ -201,7 +216,7 @@ public unsafe class ScoreFunctions : Base
         return Single.Lerp(0f, scoreValue, percentage / 100);
     }
 
-    static string GetFeedback(Move move, float percentage) => (move.goldMove, percentage) switch 
+    static string GetFeedback(Move move, float percentage) => (move.goldMove, percentage) switch
     {
         (1, > 70.0f) => "YEAH",
         (1, < 70.0f) => "MISSYEAH",
@@ -276,17 +291,6 @@ public unsafe class ScoreFunctions : Base
         string totalScoreOutput = comparative.values[index].totalScore.ToString("n2").PadRight(12);
         string feedbackOutput = comparative.values[index].feedback.PadRight(12);
         Console.Write($"{energyOutput}{addedScoreOutput}{totalScoreOutput}{feedbackOutput}|");
-    }
-
-    static void WriteStaticHeader(bool sleep, string log, int commandID)
-    {
-        Console.Clear();
-        Console.WriteLine(header);
-        Console.WriteLine($"{commands[commandID].Replace($"[{commandID}] ", "")}{newLine}");
-        Console.Write($"[Console]");
-        console = log;
-        Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
-        if (sleep) Thread.Sleep(500);
     }
 
     static string GetOrCreateComparativesDirectory()
