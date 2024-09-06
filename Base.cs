@@ -13,7 +13,7 @@ public class Base
     public static readonly string[] commands =
     [
         "  [0] Compare scoring API's from recorded data",
-        "  [1] Generate MSM's from recorded data",
+        "  [1] Generate MSM's from recorded data"
     ];
     public static readonly string header = "Just Dance Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
     public static string console = "...";

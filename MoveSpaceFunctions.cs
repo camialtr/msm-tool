@@ -1,15 +1,20 @@
 ﻿using MSP_LIB;
+using RecTool;
 using MSPClassifier;
 using RecMoveExtractor;
+using System.Text.Json;
 using TmlDtapeMoveExtractor;
+using NativeFileDialogSharp;
 
 #pragma warning disable CS8600
+#pragma warning disable CS8602
 #pragma warning disable CS8618
 namespace jd_tools;
 
+#if (DEBUGX64 || RELEASEX64)
 public class MoveSpaceFunctions : Base
-{
-    public static void Experimental()
+{    
+    public static void ExperimentalMSM()
     {
         WriteStaticHeader(true, "Running...", 1);
         //Register measure set
@@ -19,19 +24,141 @@ public class MoveSpaceFunctions : Base
         string songName = "IKissedSWT";
         string measureSetName = "Acc_Dev_Dir_NP";
         float AccelSaturationValue = 3.4f;
-        List<string> recs = [.. Directory.GetFiles(@"C:\Users\camia\Downloads\IKissedSWT\Timeline\Recording", "*.rec")];
+        List<string> recs = [.. Directory.GetFiles(@"C:\Games\Just Dance Next\Just Dance Next_Data\Maps\ikissedswt\recording", "*.rec")];
         string tml = @"C:\Users\camia\Downloads\ikissedswt_TML_Dance.dtape";
         string trk = @"C:\Users\camia\Downloads\ikissedswt.trk";
         //Compute measures
         CMoves measures = ComputeMeasures(songName, measureSetName, AccelSaturationValue, recs, tml, trk, null);
         //Save Moves
-        GenerateMoveSpaceFiles(songName, measures, @"C:\Users\camia\Downloads\IKissedSWT\GeneratedMoves", 7, true);
+        GenerateMoveSpaceFiles(songName, measures, @"C:\Games\Just Dance Next\Just Dance Next_Data\Maps\ikissedswt\generated", 7, true);
         Console.ReadLine();
+        console = "...";
+        Program.InitialLogic();
+    }
+
+    public static void ExperimentalREC()
+    {
+        WriteStaticHeader(true, "Running...", 1);
+        RecReader recReader = new(@"C:\Games\Just Dance Next\Just Dance Next_Data\Maps\ikissedswt\recording\Player1_data_09042024_224344.rec");
+        RecTool.RecData data = recReader.Data;
+        Console.WriteLine(newLine);
+        List<PadSample> padSamples = recReader.GetMotionSamplesByPadIndex(0);
+        foreach (PadSample padSample in padSamples)
+        {
+            float fieldSampleCount = padSample.SampleFieldList.Count;
+            string padID = padSample.PadId.ToString();
+            float date = padSample.Date;
+            int id = 0;
+            foreach (FieldSample fieldSample in padSample.SampleFieldList)
+            {
+                id++;
+                Console.WriteLine($"Name: {fieldSample.SampleFieldDef.Name} Size: {fieldSample.SampleFieldDef.Size} Date: {date} Progress: {id}/{fieldSampleCount} PadID: {padID} Type: {fieldSample.SampleFieldDef.DataType} Value: {fieldSample.SampleFieldDef.Use} Count: {fieldSample.SampleFieldDef.Count}");
+                Console.WriteLine("=====");
+                Console.WriteLine($"X: {fieldSample.FloatList[0]}");
+                Console.WriteLine($"Y: {fieldSample.FloatList[1]}");
+                Console.WriteLine($"Z: {fieldSample.FloatList[2]}");
+                Console.WriteLine("=====");
+            }
+        }
+        Console.ReadLine();
+        console = "...";
+        Program.InitialLogic();
+    }
+
+    public static void ExperimentalACCToREC()
+    {
+        WriteStaticHeader(true, "Running...", 1);
+        foreach (string file in Directory.GetFiles(@"C:\Games\Just Dance Next\Just Dance Next_Data\Maps\ikissedswt\accdata", "*.json"))
+        {
+            string recFile = file.Replace("accdata", "recording").Replace(".json", ".rec");
+            List<FieldDef> fieldDefList = 
+            [
+                RecWriter.CreateFieldDef(RecDataFormat.FIELD_TIME, FieldUse.FieldUse_Time, false),
+                RecWriter.CreateFieldDef(RecDataFormat.FIELD_ACCEL_NX + "1_", FieldUse.FieldUse_MotionData, true),
+                RecWriter.CreateFieldDef(RecDataFormat.FIELD_GYRO_NX + "1A", FieldUse.FieldUse_MotionData, true)
+            ];
+            RecWriter recWriter = new(new()
+            {
+                FieldDefList = fieldDefList,
+                MapName = "WhineUp",
+                FormatName = "NX_ACCQD",
+                VersionId = 4U
+            }, recFile);
+            List<RecordedAccData> accData = JsonSerializer.Deserialize<List<RecordedAccData>>(File.ReadAllText(file));
+            foreach (RecordedAccData recordedAccData in accData)
+            {
+                ExtendedChunkData chunkData = RecWriter.CreateChunkData(recordedAccData.mapTime);
+                chunkData.PadNumber = 1;
+                chunkData.AddPadSample(
+                [
+                    new() 
+                    {
+                        SampleFieldDef = RecWriter.CreateFieldDef(RecDataFormat.FIELD_ACCEL_NX + "1_", FieldUse.FieldUse_MotionData, true),
+                        FloatList = [ recordedAccData.accX, recordedAccData.accY, recordedAccData.accZ ],
+
+                    },
+                    new()
+                    {
+                        SampleFieldDef = RecWriter.CreateFieldDef(RecDataFormat.FIELD_GYRO_NX + "1A", FieldUse.FieldUse_MotionData, true),
+                        FloatList = [ 0f, 0f, 0f ]
+                    }
+                ]);
+                recWriter.AppendSample(chunkData);
+            }
+            recWriter.SaveRec();
+            RecReader recReader = new(file.Replace("accdata", "recording").Replace(".json", ".rec"));
+        }
+        console = "...";
+        Program.InitialLogic();
     }
 
     public static void GenerateMSMsFromRecordedData()
     {
-        WriteStaticHeader(true, "Select a file...", 1);
+        console = "...";
+        Console.Clear();
+        Console.WriteLine(header);
+        Console.WriteLine("  Insert MapName assuring you're using the correct formatting pattern. Example: 'IKissedSWT', 'WhineUp'");
+        Console.Write($"{newLine}Type code: ");
+        Console.Write($"{newLine}{newLine}[Console]");
+        Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+        Console.SetCursorPosition(11, 5);
+        string? mapName = Console.ReadLine();
+        if (mapName == null || mapName == "")
+        {
+            console = "Invalid MapName, try again!";
+            Program.InitialLogic();
+        }
+        Console.Clear();
+        Console.WriteLine(header);
+        Console.WriteLine("  Insert the coach index witch you want to create MSM's for");
+        Console.Write($"{newLine}Type code: ");
+        Console.Write($"{newLine}{newLine}[Console]");
+        Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+        Console.SetCursorPosition(11, 5);
+        int coachId = 1;
+        try 
+        {
+            coachId = Convert.ToInt32(Console.ReadLine());
+        }
+        catch { }
+        DialogResult dialogResult = Dialog.FolderPicker(mapsPath);
+        if (dialogResult.IsCancelled) { console = "Operation cancelled..."; Program.InitialLogic(); }
+        if (Directory.Exists(Path.Combine(dialogResult.Path, "accdata")) && File.Exists(Path.Combine(dialogResult.Path, "musictrack.json")) && File.Exists(Path.Combine(dialogResult.Path, "timeline.json")))
+        {
+            if (Directory.GetFiles(Path.Combine(dialogResult.Path, "accdata")).Length >= 5)
+            {
+            }
+            else
+            {
+                console = "Not enough data to generate MSM's...";
+                Program.InitialLogic();
+            }
+        }
+        else
+        {
+            console = "Incorrect folder structure! Select a correct one...";
+            Program.InitialLogic();
+        }
     }
     
     private static Func<double, string, bool> eUpdateProgression;
@@ -86,3 +213,4 @@ public class MoveSpaceFunctions : Base
         foreach (string file in Directory.GetFiles(msmPath)) File.Move(file, file.ToLower());
     }
 }
+#endif
