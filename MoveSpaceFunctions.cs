@@ -3,114 +3,20 @@ using RecTool;
 using MSPClassifier;
 using RecMoveExtractor;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using TmlDtapeMoveExtractor;
 using NativeFileDialogSharp;
+using System.Reflection.Metadata;
 
 #pragma warning disable CS8600
 #pragma warning disable CS8602
 #pragma warning disable CS8618
+#pragma warning disable CS8625
 namespace jd_tools;
 
 #if (DEBUGX64 || RELEASEX64)
 public class MoveSpaceFunctions : Base
-{    
-    public static void ExperimentalMSM()
-    {
-        WriteStaticHeader(true, "Running...", 1);
-        //Register measure set
-        MeasuresManager.GetInstance.RegisterMeasuresSet(EMeasuresSet.Acc_Dev_Dir_NP);
-        MeasuresManager.GetInstance.PopulateMeasuresSetUsingMeasuresIds(EMeasuresSet.Acc_Dev_Dir_NP, eMeasuresIds.eMeasureId_AccelNormAvg_NP, eMeasuresIds.eMeasureId_AccelDevNormAvg_NP, eMeasuresIds.eMeasureId_AxDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AyDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AzDevAvg_Dir_NP);
-        //Items Declarations
-        string songName = "IKissedSWT";
-        string measureSetName = "Acc_Dev_Dir_NP";
-        float AccelSaturationValue = 3.4f;
-        List<string> recs = [.. Directory.GetFiles(@"C:\Games\Just Dance Next\Just Dance Next_Data\Maps\ikissedswt\recording", "*.rec")];
-        string tml = @"C:\Users\camia\Downloads\ikissedswt_TML_Dance.dtape";
-        string trk = @"C:\Users\camia\Downloads\ikissedswt.trk";
-        //Compute measures
-        CMoves measures = ComputeMeasures(songName, measureSetName, AccelSaturationValue, recs, tml, trk, null);
-        //Save Moves
-        GenerateMoveSpaceFiles(songName, measures, @"C:\Games\Just Dance Next\Just Dance Next_Data\Maps\ikissedswt\generated", 7, true);
-        Console.ReadLine();
-        console = "...";
-        Program.InitialLogic();
-    }
-
-    public static void ExperimentalREC()
-    {
-        WriteStaticHeader(true, "Running...", 1);
-        RecReader recReader = new(@"C:\Games\Just Dance Next\Just Dance Next_Data\Maps\ikissedswt\recording\Player1_data_09042024_224344.rec");
-        RecTool.RecData data = recReader.Data;
-        Console.WriteLine(newLine);
-        List<PadSample> padSamples = recReader.GetMotionSamplesByPadIndex(0);
-        foreach (PadSample padSample in padSamples)
-        {
-            float fieldSampleCount = padSample.SampleFieldList.Count;
-            string padID = padSample.PadId.ToString();
-            float date = padSample.Date;
-            int id = 0;
-            foreach (FieldSample fieldSample in padSample.SampleFieldList)
-            {
-                id++;
-                Console.WriteLine($"Name: {fieldSample.SampleFieldDef.Name} Size: {fieldSample.SampleFieldDef.Size} Date: {date} Progress: {id}/{fieldSampleCount} PadID: {padID} Type: {fieldSample.SampleFieldDef.DataType} Value: {fieldSample.SampleFieldDef.Use} Count: {fieldSample.SampleFieldDef.Count}");
-                Console.WriteLine("=====");
-                Console.WriteLine($"X: {fieldSample.FloatList[0]}");
-                Console.WriteLine($"Y: {fieldSample.FloatList[1]}");
-                Console.WriteLine($"Z: {fieldSample.FloatList[2]}");
-                Console.WriteLine("=====");
-            }
-        }
-        Console.ReadLine();
-        console = "...";
-        Program.InitialLogic();
-    }
-
-    public static void ExperimentalACCToREC()
-    {
-        WriteStaticHeader(true, "Running...", 1);
-        foreach (string file in Directory.GetFiles(@"C:\Games\Just Dance Next\Just Dance Next_Data\Maps\ikissedswt\accdata", "*.json"))
-        {
-            string recFile = file.Replace("accdata", "recording").Replace(".json", ".rec");
-            List<FieldDef> fieldDefList = 
-            [
-                RecWriter.CreateFieldDef(RecDataFormat.FIELD_TIME, FieldUse.FieldUse_Time, false),
-                RecWriter.CreateFieldDef(RecDataFormat.FIELD_ACCEL_NX + "1_", FieldUse.FieldUse_MotionData, true),
-                RecWriter.CreateFieldDef(RecDataFormat.FIELD_GYRO_NX + "1A", FieldUse.FieldUse_MotionData, true)
-            ];
-            RecWriter recWriter = new(new()
-            {
-                FieldDefList = fieldDefList,
-                MapName = "WhineUp",
-                FormatName = "NX_ACCQD",
-                VersionId = 4U
-            }, recFile);
-            List<RecordedAccData> accData = JsonSerializer.Deserialize<List<RecordedAccData>>(File.ReadAllText(file));
-            foreach (RecordedAccData recordedAccData in accData)
-            {
-                ExtendedChunkData chunkData = RecWriter.CreateChunkData(recordedAccData.mapTime);
-                chunkData.PadNumber = 1;
-                chunkData.AddPadSample(
-                [
-                    new() 
-                    {
-                        SampleFieldDef = RecWriter.CreateFieldDef(RecDataFormat.FIELD_ACCEL_NX + "1_", FieldUse.FieldUse_MotionData, true),
-                        FloatList = [ recordedAccData.accX, recordedAccData.accY, recordedAccData.accZ ],
-
-                    },
-                    new()
-                    {
-                        SampleFieldDef = RecWriter.CreateFieldDef(RecDataFormat.FIELD_GYRO_NX + "1A", FieldUse.FieldUse_MotionData, true),
-                        FloatList = [ 0f, 0f, 0f ]
-                    }
-                ]);
-                recWriter.AppendSample(chunkData);
-            }
-            recWriter.SaveRec();
-            RecReader recReader = new(file.Replace("accdata", "recording").Replace(".json", ".rec"));
-        }
-        console = "...";
-        Program.InitialLogic();
-    }
+{
 
     public static void GenerateMSMsFromRecordedData()
     {
@@ -157,9 +63,10 @@ public class MoveSpaceFunctions : Base
         {
             if (Directory.GetFiles(Path.Combine(dialogResult.Path, "accdata")).Length >= 5)
             {
-                GenerateRecs(mapName, dialogResult.Path);
-                GenerateMSMs(mapName, coachId, dialogResult.Path);
-                console = "...";
+                GenerateRECs(mapName, dialogResult.Path);
+                GenerateLUAs(mapName, coachId, dialogResult.Path);
+                GenerateMSMs(mapName, dialogResult.Path);
+                console = $"Success! Moves available at {mapName.ToLower()}/generated...";
                 Program.InitialLogic();
             }
             else
@@ -175,9 +82,9 @@ public class MoveSpaceFunctions : Base
         }
     }
 
-    public static void GenerateRecs(string mapName, string path)
+    public static void GenerateRECs(string mapName, string path)
     {
-        WriteStaticHeader(true, "Creating Recs...", 1);
+        WriteStaticHeader(true, "Creating REC's...", 1);
         if (Directory.Exists(@$"{path}\recording")) Directory.Delete(@$"{path}\recording", true);
         Directory.CreateDirectory(@$"{path}\recording");
         foreach (string file in Directory.GetFiles(@$"{path}\accdata", "*.json"))
@@ -189,25 +96,24 @@ public class MoveSpaceFunctions : Base
                 RecWriter.CreateFieldDef(RecDataFormat.FIELD_ACCEL_NX + "1_", FieldUse.FieldUse_MotionData, true),
                 RecWriter.CreateFieldDef(RecDataFormat.FIELD_GYRO_NX + "1A", FieldUse.FieldUse_MotionData, true)
             ];
-            RecWriter recWriter = new(new()
+            HeaderInfo headerInfo = new()
             {
                 FieldDefList = fieldDefList,
                 MapName = mapName,
                 FormatName = "NX_ACCQD",
                 VersionId = 4U
-            }, recFile);
+            };
+            RecWriter recWriter = new(headerInfo, recFile);
             List<RecordedAccData> accData = JsonSerializer.Deserialize<List<RecordedAccData>>(File.ReadAllText(file));
             foreach (RecordedAccData recordedAccData in accData)
             {
                 ExtendedChunkData chunkData = RecWriter.CreateChunkData(recordedAccData.mapTime);
-                chunkData.PadNumber = 1;
                 chunkData.AddPadSample(
                 [
                     new() 
                     {
                         SampleFieldDef = RecWriter.CreateFieldDef(RecDataFormat.FIELD_ACCEL_NX + "1_", FieldUse.FieldUse_MotionData, true),
-                        FloatList = [ recordedAccData.accX, recordedAccData.accY, recordedAccData.accZ ],
-
+                        FloatList = [ recordedAccData.accX, recordedAccData.accY, recordedAccData.accZ ]
                     },
                     new()
                     {
@@ -222,15 +128,109 @@ public class MoveSpaceFunctions : Base
         }
     }
 
-    public static void GenerateMSMs(string mapName, int coachId, string path)
+    public static void GenerateLUAs(string mapName, int coachID, string path)
     {
-        WriteStaticHeader(true, "Creating MSM's...", 1);
-        MeasuresManager.GetInstance.RegisterMeasuresSet(EMeasuresSet.Acc_Dev_Dir_NP);
-        MeasuresManager.GetInstance.PopulateMeasuresSetUsingMeasuresIds(EMeasuresSet.Acc_Dev_Dir_NP, eMeasuresIds.eMeasureId_AccelNormAvg_NP, eMeasuresIds.eMeasureId_AccelDevNormAvg_NP, eMeasuresIds.eMeasureId_AxDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AyDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AzDevAvg_Dir_NP);        
-        CMoves measures = ComputeMeasures(mapName, "Acc_Dev_Dir_NP", 3.4f, [.. Directory.GetFiles(@$"{path}\recording")], @"C:\Users\camia\Downloads\ikissedswt_TML_Dance.dtape", @"C:\Users\camia\Downloads\ikissedswt.trk", null);
+        WriteStaticHeader(true, "Creating LUA's...", 1);
+        if (Directory.Exists(@$"{path}\lua")) Directory.Delete(@$"{path}\lua", true);
+        Directory.CreateDirectory(@$"{path}\lua");
+        MusicTrack musicTrack = JsonSerializer.Deserialize<MusicTrack>(File.ReadAllText(Path.Combine(path, "musictrack.json")));
+        List<int> markers = [];
+        foreach (float beat in musicTrack.beats) markers.Add((int)(beat * 48000));
+        TRK trk = new()
+        {
+            Format = 0,
+            Markers = markers,
+            AudioFilePath = $"maps\\{mapName}\\audio\\{mapName}.wav",
+            VideoStartTime = $"-00:00:{((int)musicTrack.videoStartTime).ToString("00")}",
+            StartBeat = Convert.ToInt32("-" + musicTrack.startBeat.ToString()), //TODO: Possibly will need to fix
+            EndBeat = musicTrack.endBeat
+        };
+        JsonSerializerOptions options = new() { WriteIndented = true };
+        File.WriteAllText(Path.Combine(path, "lua", $"{mapName}.trk"), JsonSerializer.Serialize(trk, options));
+        Timeline timeline = JsonSerializer.Deserialize<Timeline>(File.ReadAllText(Path.Combine(path, "timeline.json")));
+        List<Move> moves = timeline.moves.FindAll(x => x.coachID == coachID - 1);
+        TML tml = new()
+        {
+            Format = 0,
+            Tracks =
+            [
+                new ()
+                {
+                    Type = "JD.DTO.Tape.Tracks.MoveTrackDto, JD.DTO",
+                    CoachID = coachID - 1,
+                    MoveType = 0,
+                    Id = 4094799440,
+                    Name = "Moves1"
+                }
+            ],
+            MetaInfos = [],
+            ActorPaths = [],
+            MapName = mapName,
+            SoundwichEvent = "",
+            TapeClock = 0,
+            TapeBarCount = 1,
+            FreeResourcesAfterPlay = false
+        };
+        List<MotionClipDto> motionClips = [];
+        foreach (Move move in moves)
+        {
+            bool goldMove = move.goldMove == 1 ? true : false;
+            motionClips.Add(new() 
+            {
+                Type = "JD.DTO.Tape.Clips.DanceTape.MotionClipDto, JD.DTO",
+                ClassifierPath = $@"{path}\moves\{move.name}.msm".Replace("\\", "/"),
+                GoldMove = goldMove,
+                CoachID = move.coachID,
+                MoveType = 0,
+                Color = "Red",
+                MotionPlatformSpecifics = new MotionPlatformSpecifics
+                {
+                    X360 = new Platform { ScoreScale = 1.0, ScoreSmoothing = 0.0, LowThreshold = 0.2, HighThreshold = 1.0 },
+                    DURANGO = new Platform { ScoreScale = 1.0, ScoreSmoothing = 0.0, LowThreshold = 0.2, HighThreshold = 1.0 },
+                    ORBIS = new Platform { ScoreScale = 1.0, ScoreSmoothing = 0.0, LowThreshold = -0.2, HighThreshold = 0.6 },
+                    POSENET = new Platform { ScoreScale = 1.0, ScoreSmoothing = 0.0, LowThreshold = 0.2, HighThreshold = 1.0 },
+                    BLAZEPOSE = new Platform { ScoreScale = 1.0, ScoreSmoothing = 0.0, LowThreshold = 0.2, HighThreshold = 1.0 },
+                },
+                Id = 1262207903,
+                TrackId = 4094799440,
+                IsActive = true,
+                StartTime = MsToMarker(move.time, musicTrack.beats),
+                Duration = MsToMarker(move.duration, musicTrack.beats),
+            });
+        }
+        tml.Clips = motionClips;
+        File.WriteAllText(Path.Combine(path, "lua", $"{mapName}_TML_Dance.dtape"), JsonSerializer.Serialize(tml, options));
+    }
+
+    public static int MsToMarker(float ms, List<float> beats)
+    {
+        int backIndex = 0;
+        int frontIndex = 0;
+        for (int i = 0; i < beats.Count - 1; i++)
+        {
+            if (ms >= beats[i] && ms <= beats[i + 1])
+            {
+                backIndex = i;
+                frontIndex = i + 1;
+                break;
+            }
+        }
+        double back = beats[backIndex];
+        double front = beats[frontIndex];
+        double decimalPart = (ms - back) / (front - back);
+        double marker = backIndex + decimalPart;
+        return (int)Math.Round(marker * 24);
+    }
+
+    public static void GenerateMSMs(string mapName, string path)
+    {
+        WriteStaticHeader(true, "Computing MSM's...", 1);
         if (Directory.Exists(@$"{path}\generated")) Directory.Delete(@$"{path}\generated", true);
         Directory.CreateDirectory(@$"{path}\generated");
-        GenerateMoveSpaceFiles(mapName, measures, @$"{path}\generated", 7, true);        
+        MeasuresManager.GetInstance.RegisterMeasuresSet(EMeasuresSet.Acc_Dev_Dir_NP);
+        MeasuresManager.GetInstance.PopulateMeasuresSetUsingMeasuresIds(EMeasuresSet.Acc_Dev_Dir_NP, eMeasuresIds.eMeasureId_AccelNormAvg_NP, eMeasuresIds.eMeasureId_AccelDevNormAvg_NP, eMeasuresIds.eMeasureId_AxDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AyDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AzDevAvg_Dir_NP);        
+        CMoves measures = ComputeMeasures(mapName, "Acc_Dev_Dir_NP", 3.4f, [.. Directory.GetFiles(@$"{path}\recording")], $@"{path}\lua\{mapName}_TML_Dance.dtape", $@"{path}\lua\{mapName}.trk", null);
+        GenerateMoveSpaceFiles(mapName, measures, @$"{path}\generated", 7, true);
     }
     
     private static Func<double, string, bool> eUpdateProgression;
@@ -286,3 +286,115 @@ public class MoveSpaceFunctions : Base
     }
 }
 #endif
+
+public class TRK
+{
+    [JsonPropertyName("$format")]
+    public int Format { get; set; }
+    public List<int> Markers { get; set; }
+    public List<Signature> Signatures { get; set; }
+    public List<Section> Sections { get; set; }
+    public List<Comment> Comments { get; set; }
+    public List<Ambiance> Ambiances { get; set; }
+    public string AudioFilePath { get; set; }
+    public double StartBeat { get; set; }
+    public double EndBeat { get; set; }
+    public string VideoStartTime { get; set; }
+    public double Volume { get; set; }
+    public double PreviewEntry { get; set; }
+    public double PreviewLoopStart { get; set; }
+    public double PreviewLoopEnd { get; set; }
+    public double FadeInDuration { get; set; }
+    public double FadeOutDuration { get; set; }
+    public double FadeStartBeat { get; set; }
+    public double FadeEndBeat { get; set; }
+    public bool UseFadeStartBeat { get; set; }
+    public bool UseFadeEndBeat { get; set; }
+    public int FadeInType { get; set; }
+    public int FadeOutType { get; set; }
+}
+
+public class Signature
+{
+    public string Comment { get; set; }
+    public double Marker { get; set; }
+    public int Beat { get; set; }
+}
+
+public class Section
+{
+    public int SectionType { get; set; }
+    public double Marker { get; set; }
+    public string Comment { get; set; }
+}
+
+public class Comment
+{
+    public string CommentText { get; set; }
+    public int CommentType { get; set; }
+    public double Marker { get; set; }
+}
+
+public class Ambiance
+{
+    public string AudioFilePath { get; set; }
+    public double Marker { get; set; }
+    public string Comment { get; set; }
+}
+
+//DTO
+
+public class MotionPlatformSpecifics
+{
+    public Platform X360 { get; set; }
+    public Platform DURANGO { get; set; }
+    public Platform ORBIS { get; set; }
+    public Platform POSENET { get; set; }
+    public Platform BLAZEPOSE { get; set; }
+}
+public class Platform
+{
+    public double ScoreScale { get; set; }
+    public double ScoreSmoothing { get; set; }
+    public double LowThreshold { get; set; }
+    public double HighThreshold { get; set; }
+}
+public class MotionClipDto
+{
+    [JsonPropertyName("$type")]
+    public string Type { get; set; }
+    public string ClassifierPath { get; set; }
+    public bool GoldMove { get; set; }
+    public int CoachID { get; set; }
+    public int MoveType { get; set; }
+    public string Color { get; set; }
+    public MotionPlatformSpecifics MotionPlatformSpecifics { get; set; }
+    public long Id { get; set; }
+    public long TrackId { get; set; }
+    public bool IsActive { get; set; }
+    public int StartTime { get; set; }
+    public int Duration { get; set; }
+}
+public class MoveTrackDto
+{
+    [JsonPropertyName("$type")]
+    public string Type { get; set; }
+    public int CoachID { get; set; }
+    public int MoveType { get; set; }
+    public long Id { get; set; }
+    public string Name { get; set; }
+}
+public class TML
+{
+    [JsonPropertyName("$format")]
+    public int Format { get; set; }
+    public List<MotionClipDto> Clips { get; set; }
+    public List<MoveTrackDto> Tracks { get; set; }
+    public List<object> MetaInfos { get; set; }
+    public List<object> ActorPaths { get; set; }
+    public string MapName { get; set; }
+    public string SoundwichEvent { get; set; }
+    public int TapeClock { get; set; }
+    public int TapeBarCount { get; set; }
+    public bool FreeResourcesAfterPlay { get; set; }
+}

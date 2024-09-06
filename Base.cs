@@ -32,10 +32,12 @@ public class Base
         if (sleep) Thread.Sleep(500);
     }
 }
+
 public class Settings
 {
     public string? mapsPath { get; set; }
-}    
+}
+
 public class RecordedAccData
 {
     public int coachID { get; set; }
@@ -43,11 +45,22 @@ public class RecordedAccData
     public float accY { get; set; }
     public float accZ { get; set; }
     public float mapTime { get; set; }
-}    
+}
+
+public class MusicTrack
+{
+    public float videoStartTime { get; set; }
+    public float videoEndTime { get; set; }
+    public int startBeat { get; set; }
+    public int endBeat { get; set; }
+    public List<float>? beats { get; set; }
+}
+
 public class Timeline
 {
     public List<Move>? moves { get; set; }
 }
+
 public class Move
 {
     public float time { get; set; }
