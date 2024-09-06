@@ -141,12 +141,26 @@ public class MoveSpaceFunctions : Base
             coachId = Convert.ToInt32(Console.ReadLine());
         }
         catch { }
+        if (coachId < 1 || coachId > 4)
+        {
+            console = "Invalid index, try again!";
+            Program.InitialLogic();
+        }
         DialogResult dialogResult = Dialog.FolderPicker(mapsPath);
         if (dialogResult.IsCancelled) { console = "Operation cancelled..."; Program.InitialLogic(); }
+        if (mapName.ToLower() != Path.GetFileName(dialogResult.Path))
+        {
+            console = "MapName doesn't match...";
+            Program.InitialLogic();
+        }
         if (Directory.Exists(Path.Combine(dialogResult.Path, "accdata")) && File.Exists(Path.Combine(dialogResult.Path, "musictrack.json")) && File.Exists(Path.Combine(dialogResult.Path, "timeline.json")))
         {
             if (Directory.GetFiles(Path.Combine(dialogResult.Path, "accdata")).Length >= 5)
             {
+                GenerateRecs(mapName, dialogResult.Path);
+                GenerateMSMs(mapName, coachId, dialogResult.Path);
+                console = "...";
+                Program.InitialLogic();
             }
             else
             {
@@ -159,6 +173,64 @@ public class MoveSpaceFunctions : Base
             console = "Incorrect folder structure! Select a correct one...";
             Program.InitialLogic();
         }
+    }
+
+    public static void GenerateRecs(string mapName, string path)
+    {
+        WriteStaticHeader(true, "Creating Recs...", 1);
+        if (Directory.Exists(@$"{path}\recording")) Directory.Delete(@$"{path}\recording", true);
+        Directory.CreateDirectory(@$"{path}\recording");
+        foreach (string file in Directory.GetFiles(@$"{path}\accdata", "*.json"))
+        {
+            string recFile = file.Replace("accdata", "recording").Replace(".json", ".rec");
+            List<FieldDef> fieldDefList = 
+            [
+                RecWriter.CreateFieldDef(RecDataFormat.FIELD_TIME, FieldUse.FieldUse_Time, false),
+                RecWriter.CreateFieldDef(RecDataFormat.FIELD_ACCEL_NX + "1_", FieldUse.FieldUse_MotionData, true),
+                RecWriter.CreateFieldDef(RecDataFormat.FIELD_GYRO_NX + "1A", FieldUse.FieldUse_MotionData, true)
+            ];
+            RecWriter recWriter = new(new()
+            {
+                FieldDefList = fieldDefList,
+                MapName = mapName,
+                FormatName = "NX_ACCQD",
+                VersionId = 4U
+            }, recFile);
+            List<RecordedAccData> accData = JsonSerializer.Deserialize<List<RecordedAccData>>(File.ReadAllText(file));
+            foreach (RecordedAccData recordedAccData in accData)
+            {
+                ExtendedChunkData chunkData = RecWriter.CreateChunkData(recordedAccData.mapTime);
+                chunkData.PadNumber = 1;
+                chunkData.AddPadSample(
+                [
+                    new() 
+                    {
+                        SampleFieldDef = RecWriter.CreateFieldDef(RecDataFormat.FIELD_ACCEL_NX + "1_", FieldUse.FieldUse_MotionData, true),
+                        FloatList = [ recordedAccData.accX, recordedAccData.accY, recordedAccData.accZ ],
+
+                    },
+                    new()
+                    {
+                        SampleFieldDef = RecWriter.CreateFieldDef(RecDataFormat.FIELD_GYRO_NX + "1A", FieldUse.FieldUse_MotionData, true),
+                        FloatList = [ 0f, 0f, 0f ]
+                    }
+                ]);
+                recWriter.AppendSample(chunkData);
+            }
+            recWriter.SaveRec();
+            RecReader recReader = new(file.Replace("accdata", "recording").Replace(".json", ".rec"));
+        }
+    }
+
+    public static void GenerateMSMs(string mapName, int coachId, string path)
+    {
+        WriteStaticHeader(true, "Creating MSM's...", 1);
+        MeasuresManager.GetInstance.RegisterMeasuresSet(EMeasuresSet.Acc_Dev_Dir_NP);
+        MeasuresManager.GetInstance.PopulateMeasuresSetUsingMeasuresIds(EMeasuresSet.Acc_Dev_Dir_NP, eMeasuresIds.eMeasureId_AccelNormAvg_NP, eMeasuresIds.eMeasureId_AccelDevNormAvg_NP, eMeasuresIds.eMeasureId_AxDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AyDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AzDevAvg_Dir_NP);        
+        CMoves measures = ComputeMeasures(mapName, "Acc_Dev_Dir_NP", 3.4f, [.. Directory.GetFiles(@$"{path}\recording")], @"C:\Users\camia\Downloads\ikissedswt_TML_Dance.dtape", @"C:\Users\camia\Downloads\ikissedswt.trk", null);
+        if (Directory.Exists(@$"{path}\generated")) Directory.Delete(@$"{path}\generated", true);
+        Directory.CreateDirectory(@$"{path}\generated");
+        GenerateMoveSpaceFiles(mapName, measures, @$"{path}\generated", 7, true);        
     }
     
     private static Func<double, string, bool> eUpdateProgression;
