@@ -229,7 +229,7 @@ public class MoveSpaceFunctions : Base
         Directory.CreateDirectory(@$"{path}\generated");
         MeasuresManager.GetInstance.RegisterMeasuresSet(EMeasuresSet.Acc_Dev_Dir_NP);
         MeasuresManager.GetInstance.PopulateMeasuresSetUsingMeasuresIds(EMeasuresSet.Acc_Dev_Dir_NP, eMeasuresIds.eMeasureId_AccelNormAvg_NP, eMeasuresIds.eMeasureId_AccelDevNormAvg_NP, eMeasuresIds.eMeasureId_AxDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AyDevAvg_Dir_NP, eMeasuresIds.eMeasureId_AzDevAvg_Dir_NP);        
-        CMoves measures = ComputeMeasures(mapName, "Acc_Dev_Dir_NP", 3.4f, [.. Directory.GetFiles(@$"{path}\recording")], $@"{path}\lua\{mapName}_TML_Dance.dtape", $@"{path}\lua\{mapName}.trk", null);
+        CMoves measures = ComputeMeasures(mapName, "Acc_Dev_Dir_NP", 3.4f, [.. Directory.GetFiles(@$"{path}\recording", "*.rec")], $@"{path}\lua\{mapName}_TML_Dance.dtape", $@"{path}\lua\{mapName}.trk", null);
         GenerateMoveSpaceFiles(mapName, measures, @$"{path}\generated", 7, true);
     }
     
