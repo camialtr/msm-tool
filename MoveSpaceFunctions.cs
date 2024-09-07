@@ -17,7 +17,6 @@ namespace jd_tools;
 #if (DEBUGX64 || RELEASEX64)
 public class MoveSpaceFunctions : Base
 {
-
     public static void GenerateMSMsFromRecordedData()
     {
         console = "...";
@@ -271,7 +270,7 @@ public class MoveSpaceFunctions : Base
             List<int> familyList = moves.GetMoveModel(index).GetFamilyList();
             int familyCount = familyList.Count;
             classifier.ComputeClassifier(moveModel, EForceAlgoType.ForceNaiveBayes);
-            classifier.ExportClassifierFile(msmFilePath, classifierFormatVersionNumber, isTargetPC);
+            classifier.ExportClassifierFile(msmFilePath, classifierFormatVersionNumber, isTargetPC, 1.2f, 4.0f, -1, -1, 3);
             if (familyCount > 1)
             {
                 for (int familyIndex = 1; familyIndex < familyCount; familyIndex++)
