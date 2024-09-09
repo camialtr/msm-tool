@@ -91,10 +91,10 @@ internal unsafe class Program : Base
             {
                 mapsPath = @"C:\Games\Just Dance Next\Just Dance Next_Data\Maps",
                 defaultLowThreshold = 1.2f,
-                defaultHighThreshold = 4.0f,
-                defaultAutoCorrelationThreshold = -1.0f,
-                defaultDirectionImpactFactor = -1.0f,
-                defaultCustomizationBitField = 3
+                defaultHighThreshold = 3.5f,
+                defaultAutoCorrelationThreshold = 1.0f,
+                defaultDirectionImpactFactor = 1.0f,
+                defaultCustomizationBitField = 2
             };
             File.WriteAllText(settingsFilePath, JsonSerializer.Serialize(defaultSettings, options));
         }

@@ -5,7 +5,7 @@ namespace jd_tools;
 public class Base
 {
     public static readonly string newLine = Environment.NewLine;
-    public static readonly string version = "0.5.0a";
+    public static readonly string version = "0.7.0";
     #if (DEBUGX86 || RELEASEX86)
     public static readonly string architecture = "[x86]";
     #elif (DEBUGX64 || RELEASEX64)
