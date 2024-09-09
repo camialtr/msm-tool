@@ -83,16 +83,22 @@ internal unsafe class Program : Base
         #elif DEBUGX86
         middlePath = @"bin\x86\Debug\net8.0\";
         #endif
-        string settingsFilePath = BuildPath(middlePath, @"settings.json").Replace(@"Assemblies\", "");
+        string settingsFilePath = BuildPath(middlePath, @"Settings.json").Replace(@"Assemblies\", "");
         if (!File.Exists(settingsFilePath))
         {
+            JsonSerializerOptions options = new() { WriteIndented = true };
             Settings defaultSettings = new()
             {
-                mapsPath = @"C:\Games\Just Dance Next\Just Dance Next_Data\Maps"
+                mapsPath = @"C:\Games\Just Dance Next\Just Dance Next_Data\Maps",
+                defaultLowThreshold = 1.2f,
+                defaultHighThreshold = 4.0f,
+                defaultAutoCorrelationThreshold = -1.0f,
+                defaultDirectionImpactFactor = -1.0f,
+                defaultCustomizationBitField = 3
             };
-            File.WriteAllText(settingsFilePath, JsonSerializer.Serialize(defaultSettings));
+            File.WriteAllText(settingsFilePath, JsonSerializer.Serialize(defaultSettings, options));
         }
-        Settings settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(settingsFilePath).Replace("\\", @"\"));
+        settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(settingsFilePath).Replace("\\", @"\"));
         mapsPath = settings.mapsPath;
     }        
 }

@@ -1,4 +1,5 @@
 ﻿#pragma warning disable IDE1006
+#pragma warning disable CS8618
 namespace jd_tools;
 
 public class Base
@@ -18,6 +19,7 @@ public class Base
     public static readonly string header = "Just Dance Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
     public static string console = "...";
     public static string mapsPath = "";
+    public static Settings settings;
 
     public static string BuildPath(string middlePath, string endPath) => @$"{Environment.CurrentDirectory}\" + middlePath + endPath;
 
@@ -36,6 +38,11 @@ public class Base
 public class Settings
 {
     public string? mapsPath { get; set; }
+    public float defaultLowThreshold { get; set; }
+    public float defaultHighThreshold { get; set; }
+    public float defaultAutoCorrelationThreshold { get; set; }
+    public float defaultDirectionImpactFactor { get; set; }
+    public uint defaultCustomizationBitField { get; set; }
 }
 
 public class RecordedAccData
@@ -44,6 +51,9 @@ public class RecordedAccData
     public float accX { get; set; }
     public float accY { get; set; }
     public float accZ { get; set; }
+    public float gyroX { get; set; }
+    public float gyroY { get; set; }
+    public float gyroZ { get; set; }
     public float mapTime { get; set; }
 }
 

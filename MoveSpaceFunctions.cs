@@ -3,10 +3,9 @@ using RecTool;
 using MSPClassifier;
 using RecMoveExtractor;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using TmlDtapeMoveExtractor;
 using NativeFileDialogSharp;
-using System.Reflection.Metadata;
+using System.Text.Json.Serialization;
 
 #pragma warning disable CS8600
 #pragma warning disable CS8602
@@ -40,13 +39,13 @@ public class MoveSpaceFunctions : Base
         Console.Write($"{newLine}{newLine}[Console]");
         Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
         Console.SetCursorPosition(11, 5);
-        int coachId = 1;
+        int coachID = 1;
         try 
         {
-            coachId = Convert.ToInt32(Console.ReadLine());
+            coachID = Convert.ToInt32(Console.ReadLine());
         }
         catch { }
-        if (coachId < 1 || coachId > 4)
+        if (coachID < 1 || coachID > 4)
         {
             console = "Invalid index, try again!";
             Program.InitialLogic();
@@ -62,8 +61,8 @@ public class MoveSpaceFunctions : Base
         {
             if (Directory.GetFiles(Path.Combine(dialogResult.Path, "accdata")).Length >= 5)
             {
-                GenerateRECs(mapName, dialogResult.Path);
-                GenerateLUAs(mapName, coachId, dialogResult.Path);
+                GenerateRECs(mapName, coachID, dialogResult.Path);
+                GenerateLUAs(mapName, coachID, dialogResult.Path);
                 GenerateMSMs(mapName, dialogResult.Path);
                 console = $"Success! Moves available at {mapName.ToLower()}/generated...";
                 Program.InitialLogic();
@@ -81,7 +80,7 @@ public class MoveSpaceFunctions : Base
         }
     }
 
-    public static void GenerateRECs(string mapName, string path)
+    public static void GenerateRECs(string mapName, int coachID, string path)
     {
         WriteStaticHeader(true, "Creating REC's...", 1);
         if (Directory.Exists(@$"{path}\recording")) Directory.Delete(@$"{path}\recording", true);
@@ -102,8 +101,9 @@ public class MoveSpaceFunctions : Base
                 FormatName = "NX_ACCQD",
                 VersionId = 4U
             };
-            RecWriter recWriter = new(headerInfo, recFile);
             List<RecordedAccData> accData = JsonSerializer.Deserialize<List<RecordedAccData>>(File.ReadAllText(file));
+            if (accData[0].coachID != coachID) continue;
+            RecWriter recWriter = new(headerInfo, recFile);            
             foreach (RecordedAccData recordedAccData in accData)
             {
                 ExtendedChunkData chunkData = RecWriter.CreateChunkData(recordedAccData.mapTime);
@@ -117,7 +117,7 @@ public class MoveSpaceFunctions : Base
                     new()
                     {
                         SampleFieldDef = RecWriter.CreateFieldDef(RecDataFormat.FIELD_GYRO_NX + "1A", FieldUse.FieldUse_MotionData, true),
-                        FloatList = [ 0f, 0f, 0f ]
+                        FloatList = [ recordedAccData.gyroX, recordedAccData.gyroY, recordedAccData.gyroZ ]
                     }
                 ]);
                 recWriter.AppendSample(chunkData);
@@ -156,7 +156,7 @@ public class MoveSpaceFunctions : Base
                 new ()
                 {
                     Type = "JD.DTO.Tape.Tracks.MoveTrackDto, JD.DTO",
-                    CoachID = coachID - 1,
+                    CoachID = 0,
                     MoveType = 0,
                     Id = 4094799440,
                     Name = "Moves1"
@@ -179,7 +179,7 @@ public class MoveSpaceFunctions : Base
                 Type = "JD.DTO.Tape.Clips.DanceTape.MotionClipDto, JD.DTO",
                 ClassifierPath = $@"{path}\moves\{move.name}.msm".Replace("\\", "/"),
                 GoldMove = goldMove,
-                CoachID = move.coachID,
+                CoachID = 0,
                 MoveType = 0,
                 Color = "Red",
                 MotionPlatformSpecifics = new MotionPlatformSpecifics
@@ -270,7 +270,7 @@ public class MoveSpaceFunctions : Base
             List<int> familyList = moves.GetMoveModel(index).GetFamilyList();
             int familyCount = familyList.Count;
             classifier.ComputeClassifier(moveModel, EForceAlgoType.ForceNaiveBayes);
-            classifier.ExportClassifierFile(msmFilePath, classifierFormatVersionNumber, isTargetPC, 1.2f, 4.0f, -1, -1, 3);
+            classifier.ExportClassifierFile(msmFilePath, classifierFormatVersionNumber, isTargetPC, settings.defaultLowThreshold, settings.defaultHighThreshold, settings.defaultAutoCorrelationThreshold, settings.defaultDirectionImpactFactor, settings.defaultCustomizationBitField);
             if (familyCount > 1)
             {
                 for (int familyIndex = 1; familyIndex < familyCount; familyIndex++)
