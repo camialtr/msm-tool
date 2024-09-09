@@ -5,7 +5,7 @@ namespace jd_tools;
 public class Base
 {
     public static readonly string newLine = Environment.NewLine;
-    public static readonly string version = "0.7.0";
+    public static readonly string version = "0.7.5";
     #if (DEBUGX86 || RELEASEX86)
     public static readonly string architecture = "[x86]";
     #elif (DEBUGX64 || RELEASEX64)
@@ -13,7 +13,7 @@ public class Base
     #endif
     public static readonly string[] commands =
     [
-        "  [0] Compare scoring API's from recorded data",
+        "  [0] Simulate scoring in both API's from recorded data",
         "  [1] Generate MSM's from recorded data"
     ];
     public static readonly string header = "Just Dance Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
