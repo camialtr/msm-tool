@@ -93,7 +93,7 @@ internal unsafe class Program : Base
                 defaultLowThreshold = 1.2f,
                 defaultHighThreshold = 3.5f,
                 defaultAutoCorrelationThreshold = 1.0f,
-                defaultDirectionImpactFactor = 1.0f,
+                defaultDirectionImpactFactor = -1.0f,
                 defaultCustomizationBitField = 2
             };
             File.WriteAllText(settingsFilePath, JsonSerializer.Serialize(defaultSettings, options));
