@@ -49,7 +49,7 @@ public class MoveSpaceFunctions : Base
         {
             console = "Invalid index, try again!";
             Program.InitialLogic();
-        }
+        }        
         DialogResult dialogResult = Dialog.FolderPicker(mapsPath);
         if (dialogResult.IsCancelled) { console = "Operation cancelled..."; Program.InitialLogic(); }
         if (mapName.ToLower() != Path.GetFileName(dialogResult.Path))
@@ -57,12 +57,28 @@ public class MoveSpaceFunctions : Base
             console = "MapName doesn't match...";
             Program.InitialLogic();
         }
+        Console.Clear();
+        Console.WriteLine(header);
+        Console.WriteLine($"  Do you want to use custom dtape/trk LUA's? These files needs to be placed at {mapName.ToLower()}/lua (y/n)");
+        Console.Write($"{newLine}Type code: ");
+        Console.Write($"{newLine}{newLine}[Console]");
+        Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+        Console.SetCursorPosition(11, 5);
+        bool useCustomLUAs = Console.ReadLine() == "y" ? true : false;
+        if (useCustomLUAs)
+        {
+            if (!Directory.Exists(dialogResult.Path + "/lua") && !File.Exists(dialogResult.Path + "/lua/" + mapName + ".trk") && !File.Exists(dialogResult.Path + "/lua/" + mapName + "_TML_Dance.dtape"))
+            {
+                console = "Can't find LUA's at specified path...";
+                Program.InitialLogic();
+            }
+        }
         if (Directory.Exists(Path.Combine(dialogResult.Path, "accdata")) && File.Exists(Path.Combine(dialogResult.Path, "musictrack.json")) && File.Exists(Path.Combine(dialogResult.Path, "timeline.json")))
         {
             if (Directory.GetFiles(Path.Combine(dialogResult.Path, "accdata")).Length >= 5)
             {
                 GenerateRECs(mapName, coachID, dialogResult.Path);
-                GenerateLUAs(mapName, coachID, dialogResult.Path);
+                if (!useCustomLUAs) GenerateLUAs(mapName, coachID, dialogResult.Path);
                 GenerateMSMs(mapName, dialogResult.Path);
                 console = $"Success! Moves available at {mapName.ToLower()}/generated...";
                 Program.InitialLogic();
@@ -141,7 +157,7 @@ public class MoveSpaceFunctions : Base
             Markers = markers,
             AudioFilePath = $"maps\\{mapName}\\audio\\{mapName}.wav",
             VideoStartTime = $"-00:00:{((int)musicTrack.videoStartTime).ToString("00")}",
-            StartBeat = Convert.ToInt32("-" + musicTrack.startBeat.ToString()), //TODO: Possibly will need to fix
+            StartBeat = Convert.ToInt32("-" + musicTrack.startBeat.ToString()),
             EndBeat = musicTrack.endBeat
         };
         JsonSerializerOptions options = new() { WriteIndented = true };
