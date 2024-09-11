@@ -75,7 +75,7 @@ public class MoveSpaceFunctions : Base
         }
         if (Directory.Exists(Path.Combine(dialogResult.Path, "accdata")) && File.Exists(Path.Combine(dialogResult.Path, "musictrack.json")) && File.Exists(Path.Combine(dialogResult.Path, "timeline.json")))
         {
-            if (Directory.GetFiles(Path.Combine(dialogResult.Path, "accdata")).Length >= 5)
+            if (Directory.GetFiles(Path.Combine(dialogResult.Path, "accdata")).Length >= 1)
             {
                 GenerateRECs(mapName, coachID, dialogResult.Path);
                 if (!useCustomLUAs) GenerateLUAs(mapName, coachID, dialogResult.Path);
