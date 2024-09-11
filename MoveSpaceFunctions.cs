@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 #pragma warning disable CS8602
 #pragma warning disable CS8618
 #pragma warning disable CS8625
-namespace jd_tools;
+namespace msm_tools;
 
 #if (DEBUGX64 || RELEASEX64)
 public class MoveSpaceFunctions : Base
@@ -298,6 +298,39 @@ public class MoveSpaceFunctions : Base
             }
         }
         foreach (string file in Directory.GetFiles(msmPath)) File.Move(file, file.ToLower());
+    }
+
+    public static void ExtractMSMsFromMapFolder()
+    {
+        WriteStaticHeader(true, "Select a map folder...", 2);
+        DialogResult dialogResult = Dialog.FolderPicker(mapsPath);
+        if (dialogResult.IsCancelled) { console = "Operation cancelled..."; Program.InitialLogic(); }
+        if (Directory.Exists(dialogResult.Path + "/moves") && Directory.GetFiles(dialogResult.Path + "/moves", "*.msm").Length > 0)
+        {
+            if (Directory.Exists(@$"{dialogResult.Path}\extracted")) Directory.Delete(@$"{dialogResult.Path}\extracted", true);
+            Directory.CreateDirectory(@$"{dialogResult.Path}\extracted");
+            JsonSerializerOptions options = new() { WriteIndented = true, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals };
+            Console.Clear();
+            Console.WriteLine(header);
+            Console.WriteLine($"  Are these MSM's target pc? (y/n)");
+            Console.Write($"{newLine}Type code: ");
+            Console.Write($"{newLine}{newLine}[Console]");
+            Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+            Console.SetCursorPosition(11, 5);
+            bool isTargetPC = Console.ReadLine() == "y" ? false : true;
+            foreach (string file in Directory.GetFiles(dialogResult.Path + @"\moves", "*.msm"))
+            {
+                MoveSpaceManager.MoveSpace moveSpace = MoveSpaceManager.DeserializeMove(isTargetPC, file);
+                File.WriteAllText(file.Replace(@"\moves\", @"\extracted\").Replace(".msm", ".json"), JsonSerializer.Serialize(moveSpace, options));
+            }
+            console = $"Success! Moves available at {Path.GetFileNameWithoutExtension(dialogResult.Path)}/extracted...";
+            Program.InitialLogic();
+        }
+        else
+        {
+            console = "No MSM's founded in the map folder...";
+            Program.InitialLogic();
+        }
     }
 }
 #endif

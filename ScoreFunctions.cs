@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 #pragma warning disable CS8602
 #pragma warning disable CS8604
 #pragma warning disable IDE1006
-namespace jd_tools;
+namespace msm_tools;
 
 public unsafe class ScoreFunctions : Base
 {

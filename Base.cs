@@ -1,11 +1,11 @@
 ﻿#pragma warning disable IDE1006
 #pragma warning disable CS8618
-namespace jd_tools;
+namespace msm_tools;
 
 public class Base
 {
     public static readonly string newLine = Environment.NewLine;
-    public static readonly string version = "0.8.0";
+    public static readonly string version = "0.9.1";
     #if (DEBUGX86 || RELEASEX86)
     public static readonly string architecture = "[x86]";
     #elif (DEBUGX64 || RELEASEX64)
@@ -14,9 +14,10 @@ public class Base
     public static readonly string[] commands =
     [
         "  [0] Simulate scoring in both API's from recorded data",
-        "  [1] Generate MSM's from recorded data"
+        "  [1] Generate MSM's from recorded data",
+        "  [2] Extract MSM's from map folder"
     ];
-    public static readonly string header = "Just Dance Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
+    public static readonly string header = "Move Space Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
     public static string console = "...";
     public static string mapsPath = "";
     public static Settings settings;

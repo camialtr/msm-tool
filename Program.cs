@@ -4,7 +4,7 @@
 #pragma warning disable CS8601
 #pragma warning disable CS8602
 #pragma warning disable IDE0071
-namespace jd_tools;
+namespace msm_tools;
 
 internal unsafe class Program : Base
 {
@@ -72,6 +72,9 @@ internal unsafe class Program : Base
             case "1":
                 MoveSpaceFunctions.GenerateMSMsFromRecordedData();
                 break;
+            case "2":
+                MoveSpaceFunctions.ExtractMSMsFromMapFolder();
+                break;
         }
     }
     #endif
@@ -90,8 +93,8 @@ internal unsafe class Program : Base
             Settings defaultSettings = new()
             {
                 mapsPath = @"C:\Games\Just Dance Next\Just Dance Next_Data\Maps",
-                defaultLowThreshold = 1.2f,
-                defaultHighThreshold = 3.5f,
+                defaultLowThreshold = 1.0f,
+                defaultHighThreshold = 3.0f,
                 defaultAutoCorrelationThreshold = 1.0f,
                 defaultDirectionImpactFactor = -1.0f,
                 defaultCustomizationBitField = 2
