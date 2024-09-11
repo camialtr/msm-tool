@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
+using System.Security.Cryptography;
 
 #pragma warning disable CS8600
 #pragma warning disable CS8601
@@ -11,7 +13,11 @@ internal unsafe class Program : Base
     #if (DEBUGX86 || RELEASEX86)
     static void Main(string[] args)
     {
-        HandleBoot();
+        try
+        {
+            HandleBoot();
+        }
+        catch {}
         if (args.Length == 0)
         {
             Console.WriteLine("This program is a sub function from the original one and is not meant to be used alone!");
@@ -35,7 +41,13 @@ internal unsafe class Program : Base
         HandleBoot();
         if (args.Length == 0)
         {
+            console = "...";
+            #if DEBUGX64
             InitialLogic();
+            #endif
+            #if RELEASEX64
+            Authenticate();
+            #endif
             Environment.Exit(0);
         }
         switch (args[0])
@@ -48,7 +60,64 @@ internal unsafe class Program : Base
                 break;
         }
     }
-    
+
+    static void Authenticate()
+    {
+        Console.Clear();
+        Console.WriteLine(header);
+        Console.WriteLine("  You need permission to access this program");
+        Console.Write($"{newLine}Type password: ");
+        Console.Write($"{newLine}{newLine}[Console]");
+        Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+        Console.SetCursorPosition(15, 5);
+        string password = string.Empty;
+        ConsoleKey key;
+        do
+        {
+            ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: true);
+            key = keyInfo.Key;
+            if (key == ConsoleKey.Backspace && password.Length > 0)
+            {
+                password = password.Substring(0, password.Length - 1);
+                Console.Write("\b \b");
+            }
+            else if (!char.IsControl(keyInfo.KeyChar))
+            {
+                password += keyInfo.KeyChar;
+                Console.Write("*");
+            }
+        } while (key != ConsoleKey.Enter);
+        console = "Checking credentials...";
+        Console.Clear();
+        Console.WriteLine(header);
+        Console.WriteLine("  You need permission to access this program");
+        Console.Write($"{newLine}[Console]");
+        Console.Write($"{newLine}{newLine}{DateTime.Now.ToString("hh:mm:ss")} - {console}");
+        HttpClient client = new();
+        if (GetSHA256(password) == Encoding.UTF8.GetString(client.GetByteArrayAsync(checkin).Result))
+        {
+            console = "...";
+            InitialLogic();
+        }
+        else
+        {
+            console = "Wrong password, try again!";
+            Authenticate();
+        }
+    }
+
+    static string GetSHA256(string input)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(input);
+        byte[] hashBytes = SHA256.HashData(bytes);
+        StringBuilder builder = new();
+        foreach (byte b in hashBytes)
+        {
+            builder.Append(b.ToString("x2"));
+        }
+        return builder.ToString();
+    }
+
     public static void InitialLogic()
     {
         Console.Clear();
@@ -66,13 +135,13 @@ internal unsafe class Program : Base
                 console = "Invalid option, try again!";
                 InitialLogic();
                 break;
-            case "0":
+            case "1":
                 ScoreFunctions.ProcessRecordedDataLocal();
                 break;
-            case "1":
+            case "2":
                 MoveSpaceFunctions.GenerateMSMsFromRecordedData();
                 break;
-            case "2":
+            case "3":
                 MoveSpaceFunctions.ExtractMSMsFromMapFolder();
                 break;
         }

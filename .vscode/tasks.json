@@ -7,7 +7,7 @@
 			"type": "process",
 			"args": [
 				"build",
-				"${workspaceFolder}/jd-tools.csproj",
+				"${workspaceFolder}/msm-tools.csproj",
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary",
 				"/p:Configuration=Debug",
@@ -21,7 +21,7 @@
 			"type": "process",
 			"args": [
 				"build",
-				"${workspaceFolder}/jd-tools.csproj",
+				"${workspaceFolder}/msm-tools.csproj",
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary",
 				"/p:Configuration=Debug",
@@ -43,7 +43,7 @@
 			"type": "process",
 			"args": [
 				"publish",
-				"${workspaceFolder}/jd-tools.csproj",
+				"${workspaceFolder}/msm-tools.csproj",
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary",
 				"-r",
@@ -60,7 +60,7 @@
 			"type": "process",
 			"args": [
 				"publish",
-				"${workspaceFolder}/jd-tools.csproj",
+				"${workspaceFolder}/msm-tools.csproj",
 				"/property:GenerateFullPaths=true",
 				"/consoleloggerparameters:NoSummary",
 				"-r",

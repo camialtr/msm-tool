@@ -5,17 +5,18 @@ namespace msm_tools;
 public class Base
 {
     public static readonly string newLine = Environment.NewLine;
-    public static readonly string version = "0.9.1";
+    public static readonly string version = "1.0.0";
     #if (DEBUGX86 || RELEASEX86)
     public static readonly string architecture = "[x86]";
     #elif (DEBUGX64 || RELEASEX64)
     public static readonly string architecture = "[x64]";
     #endif
+    public static readonly string checkin = @"https://www.dropbox.com/scl/fi/8wkkzr55a5442vfzrr1az/auth?rlkey=797g2nfp6o15hcztcsnnryb2y&st=lp1hs7vz&dl=1";
     public static readonly string[] commands =
     [
-        "  [0] Simulate scoring in both API's from recorded data",
-        "  [1] Generate MSM's from recorded data",
-        "  [2] Extract MSM's from map folder"
+        "  [1] Simulate scoring in both API's from recorded data",
+        "  [2] Generate MSM's from recorded data",
+        "  [3] Extract MSM's from map folder"
     ];
     public static readonly string header = "Move Space Tools | Created by Cami" + newLine + $"Version: {version} {architecture}" + newLine;
     public static string console = "...";

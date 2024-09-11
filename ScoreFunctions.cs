@@ -104,7 +104,7 @@ public unsafe class ScoreFunctions : Base
         #endif
         ProcessStartInfo processStartInfo = new()
         {
-            FileName = BuildPath(middlePath, @"jd-tools.exe").Replace(@"Assemblies\", ""),
+            FileName = BuildPath(middlePath, @"msm-tools.exe").Replace(@"Assemblies\", ""),
             Arguments = $"compare"
         };
         Process.Start(processStartInfo);
@@ -237,7 +237,7 @@ public unsafe class ScoreFunctions : Base
         #endif
         ProcessStartInfo processStartInfo = new()
         {
-            FileName = BuildPath(middlePath, @"jd-tools.exe"),
+            FileName = BuildPath(middlePath, @"msm-tools.exe"),
             Arguments = $"processrecordeddatalocal {path.Replace(" ", "|SPACE|")}"
         };
         Process.Start(processStartInfo);
@@ -259,21 +259,21 @@ public unsafe class ScoreFunctions : Base
         ComparativeJSON jdScoring = JsonSerializer.Deserialize<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "jdScoring.json")));
         ComparativeJSON moveSpaceWrapper = JsonSerializer.Deserialize<ComparativeJSON>(File.ReadAllText(Path.Combine(comparativesDirectory, "MoveSpaceWrapper.json")));
         WriteStaticHeader(false, $"Generated comparative:{newLine}{newLine}", 0);
-        Console.WriteLine("".PadRight(31) + "jdScoring".PadRight(37) + "MoveSpaceWrapper");
-        Console.WriteLine(new string('=', 105));
-        Console.WriteLine("Move".PadRight(30) + "|" + "Score".PadRight(12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|" + "Score".PadRight (12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|");
+        Console.WriteLine("".PadRight(41) + "jdScoring".PadRight(37) + "MoveSpaceWrapper");
+        Console.WriteLine(new string('=', 115));
+        Console.WriteLine("Move".PadRight(40) + "|" + "Score".PadRight(12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|" + "Score".PadRight (12) + "Total S.".PadRight(12) + "Feedback".PadRight(12) + "|");
         for (int i = 0; i < jdScoring.values.Count; i++)
         {
             if (i > 0) Console.WriteLine();
-            Console.Write(moveSpaceWrapper.values[i].move.PadRight(30) + "|");
+            Console.Write(moveSpaceWrapper.values[i].move.PadRight(40) + "|");
             GenerateComparative(jdScoring, i);
             GenerateComparative(moveSpaceWrapper, i);
         }
         Directory.Delete(comparativesDirectory, true);
         Console.WriteLine();
-        Console.WriteLine(new string('=', 105));
+        Console.WriteLine(new string('=', 115));
         Console.WriteLine("Press any key to exit...");
-        Console.WriteLine(new string('=', 105));
+        Console.WriteLine(new string('=', 115));
         Console.CursorVisible = false;
         Console.ReadKey();
         Console.CursorVisible = true;

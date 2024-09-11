@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/x64/Debug/net8.0/jd-tools.dll",
+            "program": "${workspaceFolder}/bin/x64/Debug/net8.0/msm-tools.dll",
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "externalTerminal"
@@ -16,7 +16,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "release",
-            "program": "${workspaceFolder}/bin/x64/Release/net8.0/win-x64/jd-tools.dll",
+            "program": "${workspaceFolder}/bin/x64/Release/net8.0/win-x64/msm-tools.dll",
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "externalTerminal"
