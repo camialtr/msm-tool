@@ -190,6 +190,7 @@ public class MoveSpaceFunctions : Base
         foreach (Move move in moves)
         {
             bool goldMove = move.goldMove == 1 ? true : false;
+            var startTime = MsToMarker(move.time, musicTrack.beats);            
             motionClips.Add(new() 
             {
                 Type = "JD.DTO.Tape.Clips.DanceTape.MotionClipDto, JD.DTO",
@@ -209,8 +210,8 @@ public class MoveSpaceFunctions : Base
                 Id = 1262207903,
                 TrackId = 4094799440,
                 IsActive = true,
-                StartTime = MsToMarker(move.time, musicTrack.beats),
-                Duration = MsToMarker(move.duration, musicTrack.beats),
+                StartTime = startTime,
+                Duration = MsToMarker(move.time + move.duration, musicTrack.beats) - startTime,
             });
         }
         tml.Clips = motionClips;
